@@ -33,7 +33,14 @@ solution "Box2D"
 			files { "freeglut/*.h", "freeglut/*.c" }
 			vpaths { ["Headers"] = "**.h",  ["Sources"] = "**.c" }
 	end
-	
+	project "Bench2D"
+		kind "ConsoleApp"
+		language "C++"
+		files { "Bench2D/Bench2d.cpp", "Bench2D/Bench2d.h", "Bench2D/bench2d_main.cpp" }
+		vpaths { [""] = "Bench2D" }
+		includedirs { "." }
+		links { "Box2D" }
+
 	project "GLUI"
 		kind "StaticLib"
 		language "C++"
