@@ -26,6 +26,9 @@
 #include <cstddef>
 #include <limits>
 
+typedef float32 float32x4 __attribute__ ((ext_vector_type (16)));
+typedef int32 int32x4 __attribute__ ((ext_vector_type (16)));
+
 /// This function is used to ensure that a floating point number is
 /// not a NaN or infinity.
 inline bool b2IsValid(float32 x)
@@ -67,58 +70,76 @@ struct b2Vec2
 	b2Vec2() {}
 
 	/// Construct using coordinates.
-	b2Vec2(float32 x, float32 y) : x(x), y(y) {}
-
-	/// Set this vector to all zeros.
-	void SetZero() { x = 0.0f; y = 0.0f; }
-
-	/// Set this vector to some specified coordinates.
-	void Set(float32 x_, float32 y_) { x = x_; y = y_; }
-
-	/// Negate this vector.
-	b2Vec2 operator -() const { b2Vec2 v; v.Set(-x, -y); return v; }
-	
-	/// Read from and indexed element.
-	float32 operator () (int32 i) const
-	{
-		return (&x)[i];
+	//b2Vec2(float32 x, float32 y) : x(x), y(y) {}
+	b2Vec2(float32 x, float32 y) {
+		m_float4[0] = x;
+		m_float4[1] = y;
+		m_float4[2] = 0.0;
+		m_float4[3] = 0.0;
 	}
 
-	/// Write to an indexed element.
-	float32& operator () (int32 i)
-	{
-		return (&x)[i];
+	explicit b2Vec2(float32x4 f4) : m_float4(f4) {}
+
+	/// Set this vector to all zeros.
+	//void SetZero() { x = 0.0f; y = 0.0f; }
+	void SetZero() { m_float4 = {0.0, 0.0, 0.0, 0.0}; }
+
+	/// Set this vector to some specified coordinates.
+	//void Set(float32 x_, float32 y_) { x = x_; y = y_; }
+	void Set(float32 x_, float32 y_) { 
+		m_float4[0] = x_;
+		m_float4[1] = y_;
+		m_float4[2] = 0.0;
+		m_float4[3] = 0.0;
+	}
+
+	float32 x() const {return m_float4[0];}
+	float32 y() const {return m_float4[1];}
+	void set_x(float32 x) {m_float4[0] = x;}
+	void set_y(float32 y) {m_float4[1] = y;}
+
+	/// Negate this vector.
+	//b2Vec2 operator -() const { b2Vec2 v; v.Set(-x, -y); return v; }
+	b2Vec2 operator -() const { 
+		return b2Vec2(-m_float4); 
 	}
 
 	/// Add a vector to this vector.
 	void operator += (const b2Vec2& v)
 	{
-		x += v.x; y += v.y;
+		//x += v.x; y += v.y;
+		m_float4 += v.m_float4;
 	}
 	
 	/// Subtract a vector from this vector.
 	void operator -= (const b2Vec2& v)
 	{
-		x -= v.x; y -= v.y;
+		//x -= v.x; y -= v.y;
+		m_float4 -= v.m_float4;
 	}
 
 	/// Multiply this vector by a scalar.
 	void operator *= (float32 a)
 	{
-		x *= a; y *= a;
+		//x *= a; y *= a;
+		m_float4 *= (float32x4) a;
 	}
 
 	/// Get the length of this vector (the norm).
 	float32 Length() const
 	{
-		return b2Sqrt(x * x + y * y);
+		//return b2Sqrt(x * x + y * y);
+		float32x4 f4 = m_float4 * m_float4;
+		return b2Sqrt(f4[0] + f4[1]);
 	}
 
 	/// Get the length squared. For performance, use this instead of
 	/// b2Vec2::Length (if possible).
 	float32 LengthSquared() const
 	{
-		return x * x + y * y;
+		//return x * x + y * y;
+		float32x4 f4 = m_float4 * m_float4;
+		return f4[0] + f4[1];
 	}
 
 	/// Convert this vector into a unit vector. Returns the length.
@@ -130,8 +151,9 @@ struct b2Vec2
 			return 0.0f;
 		}
 		float32 invLength = 1.0f / length;
-		x *= invLength;
-		y *= invLength;
+		//x *= invLength;
+		//y *= invLength;
+		m_float4 *= invLength;
 
 		return length;
 	}
@@ -139,16 +161,16 @@ struct b2Vec2
 	/// Does this vector contain finite coordinates?
 	bool IsValid() const
 	{
-		return b2IsValid(x) && b2IsValid(y);
+		return b2IsValid(x()) && b2IsValid(y());
 	}
 
 	/// Get the skew vector such that dot(skew_vec, other) == cross(vec, other)
 	b2Vec2 Skew() const
 	{
-		return b2Vec2(-y, x);
+		return b2Vec2(-y(), x());
 	}
 
-	float32 x, y;
+    float32x4 m_float4;
 };
 
 /// A 2D column vector with 3 elements.
@@ -158,36 +180,64 @@ struct b2Vec3
 	b2Vec3() {}
 
 	/// Construct using coordinates.
-	b2Vec3(float32 x, float32 y, float32 z) : x(x), y(y), z(z) {}
+	//b2Vec3(float32 x, float32 y, float32 z) : x(x), y(y), z(z) {}
+	b2Vec3(float32 x, float32 y, float32 z) {
+		m_float4[0] = x;
+	    m_float4[1] = y;
+	    m_float4[2] = z;
+	    m_float4[3] = 0.0;
+	}
+
+	explicit b2Vec3(float32x4 f4) : m_float4(f4) {}
 
 	/// Set this vector to all zeros.
-	void SetZero() { x = 0.0f; y = 0.0f; z = 0.0f; }
+	//void SetZero() { x = 0.0f; y = 0.0f; z = 0.0f; }
+	void SetZero() { m_float4 = {0.0, 0.0, 0.0, 0.0}; }
 
 	/// Set this vector to some specified coordinates.
-	void Set(float32 x_, float32 y_, float32 z_) { x = x_; y = y_; z = z_; }
+	//void Set(float32 x_, float32 y_, float32 z_) { x = x_; y = y_; z = z_; }
+	void Set(float32 x_, float32 y_, float32 z_) {
+		m_float4[0] = x_;
+	    m_float4[1] = y_;
+	    m_float4[2] = z_;
+	    m_float4[3] = 0.0;
+	}
 
 	/// Negate this vector.
-	b2Vec3 operator -() const { b2Vec3 v; v.Set(-x, -y, -z); return v; }
+	//b2Vec3 operator -() const { b2Vec3 v; v.Set(-x, -y, -z); return v; }
+	b2Vec3 operator -() const { 
+		return b2Vec3(-m_float4); 
+	}
 
 	/// Add a vector to this vector.
 	void operator += (const b2Vec3& v)
 	{
-		x += v.x; y += v.y; z += v.z;
+		//x += v.x; y += v.y; z += v.z;
+		m_float4 += v.m_float4;
 	}
 
 	/// Subtract a vector from this vector.
 	void operator -= (const b2Vec3& v)
 	{
-		x -= v.x; y -= v.y; z -= v.z;
+		//x -= v.x; y -= v.y; z -= v.z;
+		m_float4 += v.m_float4;
 	}
 
 	/// Multiply this vector by a scalar.
 	void operator *= (float32 s)
 	{
-		x *= s; y *= s; z *= s;
+		//x *= s; y *= s; z *= s;
+		m_float4 *= s;
 	}
 
-	float32 x, y, z;
+	float32 x() {return m_float4[0];}
+	float32 y() {return m_float4[1];}
+	float32 z() {return m_float4[2];}
+	void set_x(float32 x) {m_float4[0] = x;}
+	void set_y(float32 y) {m_float4[1] = y;}
+	void set_z(float32 z) {m_float4[2] = z;}
+
+    float32x4 m_float4;
 };
 
 /// A 2-by-2 matrix. Stored in column-major order.
@@ -206,8 +256,10 @@ struct b2Mat22
 	/// Construct this matrix using scalars.
 	b2Mat22(float32 a11, float32 a12, float32 a21, float32 a22)
 	{
-		ex.x = a11; ex.y = a21;
-		ey.x = a12; ey.y = a22;
+		//ex.x = a11; ex.y = a21;
+		//ey.x = a12; ey.y = a22;
+		ex.Set(a11, a21);
+		ey.Set(a12, a22);
 	}
 
 	/// Initialize this matrix using columns.
@@ -220,28 +272,37 @@ struct b2Mat22
 	/// Set this to the identity matrix.
 	void SetIdentity()
 	{
-		ex.x = 1.0f; ey.x = 0.0f;
-		ex.y = 0.0f; ey.y = 1.0f;
+		//ex.x = 1.0f; ey.x = 0.0f;
+		//ex.y = 0.0f; ey.y = 1.0f;
+		ex.m_float4 = {1.0f, 0.0f, 0.0f, 0.0f};
+		ey.m_float4 = {0.0f, 1.0f, 0.0f, 0.0f};
 	}
 
 	/// Set this matrix to all zeros.
 	void SetZero()
 	{
-		ex.x = 0.0f; ey.x = 0.0f;
-		ex.y = 0.0f; ey.y = 0.0f;
+		//ex.x = 0.0f; ey.x = 0.0f;
+		//ex.y = 0.0f; ey.y = 0.0f;
+		ex.m_float4 = {0.0f, 0.0f, 0.0f, 0.0f};
+		ey.m_float4 = {0.0f, 0.0f, 0.0f, 0.0f};
 	}
 
 	b2Mat22 GetInverse() const
 	{
-		float32 a = ex.x, b = ey.x, c = ex.y, d = ey.y;
+		//float32 a = ex.x, b = ey.x, c = ex.y, d = ey.y;
+		float32 a = ex.x(), b = ey.x(), c = ex.y(), d = ey.y();
 		b2Mat22 B;
 		float32 det = a * d - b * c;
 		if (det != 0.0f)
 		{
 			det = 1.0f / det;
 		}
-		B.ex.x =  det * d;	B.ey.x = -det * b;
-		B.ex.y = -det * c;	B.ey.y =  det * a;
+		//B.ex.x =  det * d;      B.ey.x = -det * b;
+		//B.ex.y = -det * c;      B.ey.y =  det * a;
+		B.ex.set_x(det * d);	
+		B.ey.set_x(-det * b);
+		B.ex.set_y(-det * c);
+		B.ey.set_y(det * a);
 		return B;
 	}
 
@@ -249,15 +310,15 @@ struct b2Mat22
 	/// than computing the inverse in one-shot cases.
 	b2Vec2 Solve(const b2Vec2& b) const
 	{
-		float32 a11 = ex.x, a12 = ey.x, a21 = ex.y, a22 = ey.y;
+		float32 a11 = ex.x(), a12 = ey.x(), a21 = ex.y(), a22 = ey.y();
 		float32 det = a11 * a22 - a12 * a21;
 		if (det != 0.0f)
 		{
 			det = 1.0f / det;
 		}
 		b2Vec2 x;
-		x.x = det * (a22 * b.x - a12 * b.y);
-		x.y = det * (a11 * b.y - a21 * b.x);
+		x.set_x(det * (a22 * b.x() - a12 * b.y()));
+		x.set_y(det * (a11 * b.y() - a21 * b.x()));
 		return x;
 	}
 
@@ -311,49 +372,55 @@ struct b2Rot
 {
 	b2Rot() {}
 
+	explicit b2Rot(float32x4 f4) : m_float4(f4) {}
+
 	/// Initialize from an angle in radians
 	explicit b2Rot(float32 angle)
 	{
 		/// TODO_ERIN optimize
-		s = sinf(angle);
-		c = cosf(angle);
+		set_s(sinf(angle));
+		set_c(cosf(angle));
 	}
 
 	/// Set using an angle in radians.
 	void Set(float32 angle)
 	{
 		/// TODO_ERIN optimize
-		s = sinf(angle);
-		c = cosf(angle);
+		set_s(sinf(angle));
+		set_c(cosf(angle));
 	}
 
 	/// Set to the identity rotation
 	void SetIdentity()
 	{
-		s = 0.0f;
-		c = 1.0f;
+		m_float4 = {0.0f, 1.0f, 0.0f, 0.0f};
 	}
 
 	/// Get the angle in radians
 	float32 GetAngle() const
 	{
-		return b2Atan2(s, c);
+		return b2Atan2(s(), c());
 	}
 
 	/// Get the x-axis
 	b2Vec2 GetXAxis() const
 	{
-		return b2Vec2(c, s);
+		return b2Vec2(c(), s());
 	}
 
 	/// Get the u-axis
 	b2Vec2 GetYAxis() const
 	{
-		return b2Vec2(-s, c);
+		return b2Vec2(-s(), c());
 	}
 
 	/// Sine and cosine
-	float32 s, c;
+	float32 s() const {return m_float4[0];}
+	float32 c() const {return m_float4[1];}
+	void set_s(float32 s) {m_float4[0] = s;}
+	void set_c{float32 c} {m_float4[1] = c;}
+
+	float32x4 m_float4;
 };
 
 /// A transform contains translation and rotation. It is used to represent
@@ -416,34 +483,45 @@ extern const b2Vec2 b2Vec2_zero;
 /// Perform the dot product on two vectors.
 inline float32 b2Dot(const b2Vec2& a, const b2Vec2& b)
 {
-	return a.x * b.x + a.y * b.y;
+	//a.x * b.x + a.y * b.y;
+	float32x4 c4 = a.m_float4 * b.m_float4;
+	return c4[0] + c4[1];
 }
 
 /// Perform the cross product on two vectors. In 2D this produces a scalar.
 inline float32 b2Cross(const b2Vec2& a, const b2Vec2& b)
 {
-	return a.x * b.y - a.y * b.x;
+	//a.x * b.y - a.y * b.x;
+    float32x4 c4 = __builtin_shuffle(b.m_float4, {1, 0, 0, 0}) * a.m_float4
+	return c4[0] - c4[1];	
 }
 
 /// Perform the cross product on a vector and a scalar. In 2D this produces
 /// a vector.
 inline b2Vec2 b2Cross(const b2Vec2& a, float32 s)
 {
-	return b2Vec2(s * a.y, -s * a.x);
+	//return b2Vec2(s * a.y, -s * a.x);
+	float32x4 f4 = __builtin_shuffle(a.m_float4, {1, 0, 0, 0}) * s * {1.0, -1.0, 0.0, 0.0};
+	return b2Vec2(f4)
 }
 
 /// Perform the cross product on a scalar and a vector. In 2D this produces
 /// a vector.
 inline b2Vec2 b2Cross(float32 s, const b2Vec2& a)
 {
-	return b2Vec2(-s * a.y, s * a.x);
+	//return b2Vec2(-s * a.y, s * a.x);
+	float32x4 f4 = __builtin_shuffle(a.m_float4, {1, 0, 0, 0}) * s * {-1.0, 1.0, 0.0, 0.0};
+	return b2Vec2(f4)
 }
 
 /// Multiply a matrix times a vector. If a rotation matrix is provided,
 /// then this transforms the vector from one frame to another.
 inline b2Vec2 b2Mul(const b2Mat22& A, const b2Vec2& v)
 {
-	return b2Vec2(A.ex.x * v.x + A.ey.x * v.y, A.ex.y * v.x + A.ey.y * v.y);
+	//return b2Vec2(A.ex.x * v.x + A.ey.x * v.y, A.ex.y * v.x + A.ey.y * v.y);
+	float32x4 f4 = A.ex.m_float4 * __builtin_shuffle(v.m_float4, {0, 0, 0, 0});
+	f4 += A.ey.m_float4 * __builtin_shuffle(v.m_float4, {1, 1, 0, 0});
+	return b2Vec2(f4);
 }
 
 /// Multiply a matrix transpose times a vector. If a rotation matrix is provided,
@@ -456,23 +534,28 @@ inline b2Vec2 b2MulT(const b2Mat22& A, const b2Vec2& v)
 /// Add two vectors component-wise.
 inline b2Vec2 operator + (const b2Vec2& a, const b2Vec2& b)
 {
-	return b2Vec2(a.x + b.x, a.y + b.y);
+	//return b2Vec2(a.x + b.x, a.y + b.y);
+	return b2Vec2(a.m_float4 + b.m_float4);
 }
 
 /// Subtract two vectors component-wise.
 inline b2Vec2 operator - (const b2Vec2& a, const b2Vec2& b)
 {
-	return b2Vec2(a.x - b.x, a.y - b.y);
+	//return b2Vec2(a.x - b.x, a.y - b.y);
+	return b2Vec2(a.m_float4 - b.m_float4);
 }
 
 inline b2Vec2 operator * (float32 s, const b2Vec2& a)
 {
-	return b2Vec2(s * a.x, s * a.y);
+	//return b2Vec2(s * a.x, s * a.y);
+	return b2Vec2(a.m_float4 * s);
 }
 
 inline bool operator == (const b2Vec2& a, const b2Vec2& b)
 {
-	return a.x == b.x && a.y == b.y;
+	//return a.x == b.x && a.y == b.y;
+	int32x4 i4 = a == b;
+	return i4[0] && i4[1];
 }
 
 inline float32 b2Distance(const b2Vec2& a, const b2Vec2& b)
@@ -489,31 +572,43 @@ inline float32 b2DistanceSquared(const b2Vec2& a, const b2Vec2& b)
 
 inline b2Vec3 operator * (float32 s, const b2Vec3& a)
 {
-	return b2Vec3(s * a.x, s * a.y, s * a.z);
+	//return b2Vec3(s * a.x, s * a.y, s * a.z);
+	return b2Vec3(a.m_float4 * s);
 }
 
 /// Add two vectors component-wise.
 inline b2Vec3 operator + (const b2Vec3& a, const b2Vec3& b)
 {
-	return b2Vec3(a.x + b.x, a.y + b.y, a.z + b.z);
+	//return b2Vec3(a.x + b.x, a.y + b.y, a.z + b.z);
+	return b2Vec3(a.m_float4 + b.m_float4);
 }
 
 /// Subtract two vectors component-wise.
 inline b2Vec3 operator - (const b2Vec3& a, const b2Vec3& b)
 {
-	return b2Vec3(a.x - b.x, a.y - b.y, a.z - b.z);
+	//return b2Vec3(a.x - b.x, a.y - b.y, a.z - b.z);
+	return b2Vec3(a.m_float4 - a.m_float4);
 }
 
 /// Perform the dot product on two vectors.
 inline float32 b2Dot(const b2Vec3& a, const b2Vec3& b)
 {
-	return a.x * b.x + a.y * b.y + a.z * b.z;
+	//return a.x * b.x + a.y * b.y + a.z * b.z;
+	float32x4 f4 = a.m_float4 * b.m_float4;
+	return f4[0] + f4[1] + f4[2];
 }
 
 /// Perform the cross product on two vectors.
 inline b2Vec3 b2Cross(const b2Vec3& a, const b2Vec3& b)
 {
-	return b2Vec3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+	//return b2Vec3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+	float32x4 ayzx = __builtin_shuffle(a, {1, 2, 0, 0});
+	float32x4 bzyx = __builtin_shuffle(b, {2, 1, 0, 0});
+	float32x4 f4 = ayzx * bzyx;
+	float32x4 azxy = __builtin_shuffle(a, {2, 0, 1, 0});
+	float32x4 byzx = __builtin_shuffle(b, {1, 2, 0, 0});
+	f4 -= azxy * byzx;
+	return b2Vec3(f4);
 }
 
 inline b2Mat22 operator + (const b2Mat22& A, const b2Mat22& B)
@@ -538,13 +633,20 @@ inline b2Mat22 b2MulT(const b2Mat22& A, const b2Mat22& B)
 /// Multiply a matrix times a vector.
 inline b2Vec3 b2Mul(const b2Mat33& A, const b2Vec3& v)
 {
-	return v.x * A.ex + v.y * A.ey + v.z * A.ez;
+	//return v.x() * A.ex + v.y() * A.ey + v.z() * A.ez;
+	float32x4 f4 = A.ex.m_float4 * __builtin_shuffle(v.m_float4, {0, 0, 0, 0});
+	f4 += A.ey.m_float4 * __builtin_shuffle(v.m_float4, {1, 1, 1, 0});
+	f4 += A.ez.m_float4 * __builtin_shuffle(v.m_float4, {2, 2, 2, 0});
+	return b2Vec3(f4);
 }
 
 /// Multiply a matrix times a vector.
 inline b2Vec2 b2Mul22(const b2Mat33& A, const b2Vec2& v)
 {
-	return b2Vec2(A.ex.x * v.x + A.ey.x * v.y, A.ex.y * v.x + A.ey.y * v.y);
+	//return b2Vec2(A.ex.x * v.x + A.ey.x * v.y, A.ex.y * v.x + A.ey.y * v.y);
+	float32x4 f4 = A.ex.m_float4 * __builtin_shuffle(v.m_float4, {0, 0, 0, 0});
+	f4 += A.ey.m_float4 * __builtin_shuffle(v.m_float4, {1, 1, 0, 0});
+	return b2Vec2(f4);
 }
 
 /// Multiply two rotations: q * r
@@ -554,10 +656,11 @@ inline b2Rot b2Mul(const b2Rot& q, const b2Rot& r)
 	// [qs  qc]   [rs  rc]   [qs*rc+qc*rs -qs*rs+qc*rc]
 	// s = qs * rc + qc * rs
 	// c = qc * rc - qs * rs
-	b2Rot qr;
-	qr.s = q.s * r.c + q.c * r.s;
-	qr.c = q.c * r.c - q.s * r.s;
-	return qr;
+	float32x4 f4 = q.m_float4 * __builtin_shuffle(r.m_float4, {1, 1, 0, 0});
+	f4 += __builtin_shuffle(q.m_float4, {1, 0, 0, 0}) * 
+	      __builtin_shuffle(r.m_float4, {0, 0, 0, 0}) *
+	      {1.0, -1.0, 0.0, 0.0};
+	return b2Rot(f4);
 }
 
 /// Transpose multiply two rotations: qT * r
@@ -567,40 +670,60 @@ inline b2Rot b2MulT(const b2Rot& q, const b2Rot& r)
 	// [-qs qc]   [rs  rc]   [-qs*rc+qc*rs qs*rs+qc*rc]
 	// s = qc * rs - qs * rc
 	// c = qc * rc + qs * rs
-	b2Rot qr;
-	qr.s = q.c * r.s - q.s * r.c;
-	qr.c = q.c * r.c + q.s * r.s;
-	return qr;
+	float32x4 f4 = __builtin_shuffle(q.m_float4, {1, 1, 0, 0}) * r.m_float4;
+	f4 += __builtin_shuffle(q.m_float4, {0, 0, 0, 0}) *
+	      __builtin_shuffle(r.m_float4, {1, 1, 0, 0}) *
+	      {-1.0, 1.0, 0.0, 0.0};
+	return b2Rot(f4);	
 }
 
 /// Rotate a vector
 inline b2Vec2 b2Mul(const b2Rot& q, const b2Vec2& v)
 {
-	return b2Vec2(q.c * v.x - q.s * v.y, q.s * v.x + q.c * v.y);
+	//return b2Vec2(q.c * v.x - q.s * v.y, q.s * v.x + q.c * v.y);
+	float32x4 f4 = __builtin_shuffle(q.m_float4, {1, 0, 0, 0}) *
+	               __builtin_shuffle(v.m_float4, {0, 0, 0, 0});
+	f4 += q.m_float4 * __builtin_shuffle(v.m_float4, {1, 1, 0, 0}) *
+	      {-1.0, 1.0, 0.0, 0.0};
+	return b2Vec2(f4);
 }
 
 /// Inverse rotate a vector
 inline b2Vec2 b2MulT(const b2Rot& q, const b2Vec2& v)
 {
-	return b2Vec2(q.c * v.x + q.s * v.y, -q.s * v.x + q.c * v.y);
+	//return b2Vec2(q.c * v.x + q.s * v.y, -q.s * v.x + q.c * v.y);
+	float32x4 f4 = __builtin_shuffle(q.m_float4, {1, 0, 0, 0}) * 
+	               __builtin_shuffle(v.m_float4, {0, 0, 0, 0}) *
+	               {1.0, -1.0, 0.0, 0.0};
+	f4 += q.m_float4 * __builtin_shuffle(v.m_float4, {1, 1, 0, 0});
+	return b2Vec2(f4);
 }
 
 inline b2Vec2 b2Mul(const b2Transform& T, const b2Vec2& v)
 {
-	float32 x = (T.q.c * v.x - T.q.s * v.y) + T.p.x;
-	float32 y = (T.q.s * v.x + T.q.c * v.y) + T.p.y;
-
-	return b2Vec2(x, y);
+	//float32 x = (T.q.c * v.x - T.q.s * v.y) + T.p.x;
+	//float32 y = (T.q.s * v.x + T.q.c * v.y) + T.p.y;
+	//return b2Vec2(x, y);
+	float32x4 f4 = __builtin_shuffle(T.q.m_float4, {1, 0, 0, 0}) * 
+	               __builtin_shuffle(v.m_float4, {0, 0, 0, 0});
+	f4 += T.q.m_float4 * __builtin_shuffle(v.m_float4, {1, 1, 0, 0});
+	f4 += T.p.m_float4;
+	return b2Vec2(f4);
 }
 
 inline b2Vec2 b2MulT(const b2Transform& T, const b2Vec2& v)
 {
-	float32 px = v.x - T.p.x;
-	float32 py = v.y - T.p.y;
-	float32 x = (T.q.c * px + T.q.s * py);
-	float32 y = (-T.q.s * px + T.q.c * py);
-
-	return b2Vec2(x, y);
+	//float32 px = v.x - T.p.x;
+	//float32 py = v.y - T.p.y;
+	//float32 x = (T.q.c * px + T.q.s * py);
+	//float32 y = (-T.q.s * px + T.q.c * py);
+	//return b2Vec2(x, y);
+	float32x4 p4 = v.m_float4 - T.p.m_float4;
+	float32x4 f4 = __builtin_shuffle(T.q.m_float4, {1, 0, 0, 0}) *
+	               {1.0, -1.0, 0.0, 0.0} *
+	               __builtin_shuffle(p4, {0, 0, 0, 0});
+	f4 += T.q.m_float4 * __builtin_shuffle(p4, {1, 1, 0, 0});
+	return b2Vec2(f4);
 }
 
 // v2 = A.q.Rot(B.q.Rot(v1) + B.p) + A.p
