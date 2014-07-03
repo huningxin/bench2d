@@ -133,10 +133,10 @@ void b2CollideEdgeAndCircle(b2Manifold* manifold,
 		return;
 	}
 	
-	b2Vec2 n(-e.y, e.x);
+	b2Vec2 n(-e.y(), e.x());
 	if (b2Dot(n, Q - A) < 0.0f)
 	{
-		n.Set(-n.x, -n.y);
+		n.Set(-n.x(), -n.y());
 	}
 	n.Normalize();
 	
@@ -244,7 +244,7 @@ void b2EPCollider::Collide(b2Manifold* manifold, const b2EdgeShape* edgeA, const
 	
 	b2Vec2 edge1 = m_v2 - m_v1;
 	edge1.Normalize();
-	m_normal1.Set(edge1.y, -edge1.x);
+	m_normal1.Set(edge1.y(), -edge1.x());
 	float32 offset1 = b2Dot(m_normal1, m_centroidB - m_v1);
 	float32 offset0 = 0.0f, offset2 = 0.0f;
 	bool convex1 = false, convex2 = false;
@@ -254,7 +254,7 @@ void b2EPCollider::Collide(b2Manifold* manifold, const b2EdgeShape* edgeA, const
 	{
 		b2Vec2 edge0 = m_v1 - m_v0;
 		edge0.Normalize();
-		m_normal0.Set(edge0.y, -edge0.x);
+		m_normal0.Set(edge0.y(), -edge0.x());
 		convex1 = b2Cross(edge0, edge1) >= 0.0f;
 		offset0 = b2Dot(m_normal0, m_centroidB - m_v0);
 	}
@@ -264,7 +264,7 @@ void b2EPCollider::Collide(b2Manifold* manifold, const b2EdgeShape* edgeA, const
 	{
 		b2Vec2 edge2 = m_v3 - m_v2;
 		edge2.Normalize();
-		m_normal2.Set(edge2.y, -edge2.x);
+		m_normal2.Set(edge2.y(), -edge2.x());
 		convex2 = b2Cross(edge1, edge2) > 0.0f;
 		offset2 = b2Dot(m_normal2, m_centroidB - m_v2);
 	}
@@ -547,7 +547,7 @@ void b2EPCollider::Collide(b2Manifold* manifold, const b2EdgeShape* edgeA, const
 		rf.normal = m_polygonB.normals[rf.i1];
 	}
 	
-	rf.sideNormal1.Set(rf.normal.y, -rf.normal.x);
+	rf.sideNormal1.Set(rf.normal.y(), -rf.normal.x());
 	rf.sideNormal2 = -rf.sideNormal1;
 	rf.sideOffset1 = b2Dot(rf.sideNormal1, rf.v1);
 	rf.sideOffset2 = b2Dot(rf.sideNormal2, rf.v2);
@@ -643,7 +643,7 @@ b2EPAxis b2EPCollider::ComputePolygonSeparation()
 	axis.index = -1;
 	axis.separation = -FLT_MAX;
 
-	b2Vec2 perp(-m_normal.y, m_normal.x);
+	b2Vec2 perp(-m_normal.y(), m_normal.x());
 
 	for (int32 i = 0; i < m_polygonB.count; ++i)
 	{

@@ -283,8 +283,8 @@ void b2PolygonShape::ComputeMass(b2MassData* massData, float32 density) const
 	// Let rho be the polygon density in mass per unit area.
 	// Then:
 	// mass = rho * int(dA)
-	// centroid.x = (1/mass) * rho * int(x * dA)
-	// centroid.y = (1/mass) * rho * int(y * dA)
+	// centroid.x() = (1/mass) * rho * int(x * dA)
+	// centroid.y() = (1/mass) * rho * int(y * dA)
 	// I = rho * int((x*x + y*y) * dA)
 	//
 	// We can compute these integrals by summing all the integrals
@@ -336,8 +336,8 @@ void b2PolygonShape::ComputeMass(b2MassData* massData, float32 density) const
 		// Area weighted centroid
 		center += triangleArea * k_inv3 * (e1 + e2);
 
-		float32 ex1 = e1.x, ey1 = e1.y;
-		float32 ex2 = e2.x, ey2 = e2.y;
+		float32 ex1 = e1.x(), ey1 = e1.y();
+		float32 ex2 = e2.x(), ey2 = e2.y();
 
 		float32 intx2 = ex1*ex1 + ex2*ex1 + ex2*ex2;
 		float32 inty2 = ey1*ey1 + ey2*ey1 + ey2*ey2;

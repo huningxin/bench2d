@@ -104,6 +104,22 @@ struct b2Vec2
 		return b2Vec2(-m_float4); 
 	}
 
+	/// Read from and indexed element.
+	float32 operator () (int32 i) const
+	{
+		return m_float4[i];
+	}
+
+	float32 GetElement(int32 i) const
+	{
+		return m_float4[i];
+	}
+
+	void SetElement(int32 i, float32 f)
+	{
+		m_float4[i] = f;
+	}
+
 	/// Add a vector to this vector.
 	void operator += (const b2Vec2& v)
 	{

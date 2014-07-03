@@ -403,7 +403,7 @@ void b2ContactSolver::SolveVelocityConstraints()
 			b2VelocityConstraintPoint* cp2 = vc->points + 1;
 
 			b2Vec2 a(cp1->normalImpulse, cp2->normalImpulse);
-			b2Assert(a.x >= 0.0f && a.y >= 0.0f);
+			b2Assert(a.x() >= 0.0f && a.y() >= 0.0f);
 
 			// Relative velocity at contact
 			b2Vec2 dv1 = vB + b2Cross(wB, cp1->rB) - vA - b2Cross(wA, cp1->rA);
@@ -414,8 +414,8 @@ void b2ContactSolver::SolveVelocityConstraints()
 			float32 vn2 = b2Dot(dv2, normal);
 
 			b2Vec2 b;
-			b.x = vn1 - cp1->velocityBias;
-			b.y = vn2 - cp2->velocityBias;
+			b.set_x( vn1 - cp1->velocityBias);
+			b.set_y( vn2 - cp2->velocityBias);
 
 			// Compute b'
 			b -= b2Mul(vc->K, a);
@@ -436,14 +436,14 @@ void b2ContactSolver::SolveVelocityConstraints()
 				//
 				b2Vec2 x = - b2Mul(vc->normalMass, b);
 
-				if (x.x >= 0.0f && x.y >= 0.0f)
+				if (x.x() >= 0.0f && x.y() >= 0.0f)
 				{
 					// Get the incremental impulse
 					b2Vec2 d = x - a;
 
 					// Apply incremental impulse
-					b2Vec2 P1 = d.x * normal;
-					b2Vec2 P2 = d.y * normal;
+					b2Vec2 P1 = d.x() * normal;
+					b2Vec2 P2 = d.y() * normal;
 					vA -= mA * (P1 + P2);
 					wA -= iA * (b2Cross(cp1->rA, P1) + b2Cross(cp2->rA, P2));
 
@@ -451,8 +451,8 @@ void b2ContactSolver::SolveVelocityConstraints()
 					wB += iB * (b2Cross(cp1->rB, P1) + b2Cross(cp2->rB, P2));
 
 					// Accumulate
-					cp1->normalImpulse = x.x;
-					cp2->normalImpulse = x.y;
+					cp1->normalImpulse = x.x();
+					cp2->normalImpulse = x.y();
 
 #if B2_DEBUG_SOLVER == 1
 					// Postconditions
@@ -475,19 +475,19 @@ void b2ContactSolver::SolveVelocityConstraints()
 				//   0 = a11 * x1 + a12 * 0 + b1' 
 				// vn2 = a21 * x1 + a22 * 0 + b2'
 				//
-				x.x = - cp1->normalMass * b.x;
-				x.y = 0.0f;
+				x.set_x( - cp1->normalMass * b.x());
+				x.set_y( 0.0f);
 				vn1 = 0.0f;
-				vn2 = vc->K.ex.y * x.x + b.y;
+				vn2 = vc->K.ex.y() * x.x() + b.y();
 
-				if (x.x >= 0.0f && vn2 >= 0.0f)
+				if (x.x() >= 0.0f && vn2 >= 0.0f)
 				{
 					// Get the incremental impulse
 					b2Vec2 d = x - a;
 
 					// Apply incremental impulse
-					b2Vec2 P1 = d.x * normal;
-					b2Vec2 P2 = d.y * normal;
+					b2Vec2 P1 = d.x() * normal;
+					b2Vec2 P2 = d.y() * normal;
 					vA -= mA * (P1 + P2);
 					wA -= iA * (b2Cross(cp1->rA, P1) + b2Cross(cp2->rA, P2));
 
@@ -495,8 +495,8 @@ void b2ContactSolver::SolveVelocityConstraints()
 					wB += iB * (b2Cross(cp1->rB, P1) + b2Cross(cp2->rB, P2));
 
 					// Accumulate
-					cp1->normalImpulse = x.x;
-					cp2->normalImpulse = x.y;
+					cp1->normalImpulse = x.x();
+					cp2->normalImpulse = x.y();
 
 #if B2_DEBUG_SOLVER == 1
 					// Postconditions
@@ -517,19 +517,19 @@ void b2ContactSolver::SolveVelocityConstraints()
 				// vn1 = a11 * 0 + a12 * x2 + b1' 
 				//   0 = a21 * 0 + a22 * x2 + b2'
 				//
-				x.x = 0.0f;
-				x.y = - cp2->normalMass * b.y;
-				vn1 = vc->K.ey.x * x.y + b.x;
+				x.set_x( 0.0f);
+				x.set_y( - cp2->normalMass * b.y());
+				vn1 = vc->K.ey.x() * x.y() + b.x();
 				vn2 = 0.0f;
 
-				if (x.y >= 0.0f && vn1 >= 0.0f)
+				if (x.y() >= 0.0f && vn1 >= 0.0f)
 				{
 					// Resubstitute for the incremental impulse
 					b2Vec2 d = x - a;
 
 					// Apply incremental impulse
-					b2Vec2 P1 = d.x * normal;
-					b2Vec2 P2 = d.y * normal;
+					b2Vec2 P1 = d.x() * normal;
+					b2Vec2 P2 = d.y() * normal;
 					vA -= mA * (P1 + P2);
 					wA -= iA * (b2Cross(cp1->rA, P1) + b2Cross(cp2->rA, P2));
 
@@ -537,8 +537,8 @@ void b2ContactSolver::SolveVelocityConstraints()
 					wB += iB * (b2Cross(cp1->rB, P1) + b2Cross(cp2->rB, P2));
 
 					// Accumulate
-					cp1->normalImpulse = x.x;
-					cp2->normalImpulse = x.y;
+					cp1->normalImpulse = x.x();
+					cp2->normalImpulse = x.y();
 
 #if B2_DEBUG_SOLVER == 1
 					// Postconditions
@@ -557,10 +557,10 @@ void b2ContactSolver::SolveVelocityConstraints()
 				// 
 				// vn1 = b1
 				// vn2 = b2;
-				x.x = 0.0f;
-				x.y = 0.0f;
-				vn1 = b.x;
-				vn2 = b.y;
+				x.set_x( 0.0f);
+				x.set_y( 0.0f);
+				vn1 = b.x();
+				vn2 = b.y();
 
 				if (vn1 >= 0.0f && vn2 >= 0.0f )
 				{
@@ -568,8 +568,8 @@ void b2ContactSolver::SolveVelocityConstraints()
 					b2Vec2 d = x - a;
 
 					// Apply incremental impulse
-					b2Vec2 P1 = d.x * normal;
-					b2Vec2 P2 = d.y * normal;
+					b2Vec2 P1 = d.x() * normal;
+					b2Vec2 P2 = d.y() * normal;
 					vA -= mA * (P1 + P2);
 					wA -= iA * (b2Cross(cp1->rA, P1) + b2Cross(cp2->rA, P2));
 
@@ -577,8 +577,8 @@ void b2ContactSolver::SolveVelocityConstraints()
 					wB += iB * (b2Cross(cp1->rB, P1) + b2Cross(cp2->rB, P2));
 
 					// Accumulate
-					cp1->normalImpulse = x.x;
-					cp2->normalImpulse = x.y;
+					cp1->normalImpulse = x.x();
+					cp2->normalImpulse = x.y();
 
 					break;
 				}

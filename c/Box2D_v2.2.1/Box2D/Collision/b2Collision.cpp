@@ -167,7 +167,7 @@ bool b2AABB::RayCast(b2RayCastOutput* output, const b2RayCastInput& input) const
 			if (t1 > tmin)
 			{
 				normal.SetZero();
-				normal(i) = s;
+				normal.SetElement(i, s);
 				tmin = t1;
 			}
 
