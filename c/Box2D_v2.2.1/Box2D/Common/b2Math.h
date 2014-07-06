@@ -240,7 +240,7 @@ struct b2Vec3
 	void operator -= (const b2Vec3& v)
 	{
 		//x -= v.x; y -= v.y; z -= v.z;
-		m_float4 += v.m_float4;
+		m_float4 -= v.m_float4;
 	}
 
 	/// Multiply this vector by a scalar.
@@ -279,8 +279,8 @@ struct b2Mat22
 	{
 		//ex.x = a11; ex.y = a21;
 		//ey.x = a12; ey.y = a22;
-		ex.Set(a11, a21);
-		ey.Set(a12, a22);
+		ex.set_x(a11); ex.set_y(a21);
+		ey.set_x(a12); ey.set_y(a22);
 	}
 
 	/// Initialize this matrix using columns.
@@ -523,7 +523,7 @@ inline float32 b2Dot(const b2Vec2& a, const b2Vec2& b)
 inline float32 b2Cross(const b2Vec2& a, const b2Vec2& b)
 {
 	//a.x * b.y - a.y * b.x;
-    float32x4 c4 = __builtin_shufflevector(b.m_float4, b.m_float4, 1, 0, -1, -1) * a.m_float4;
+    float32x4 c4 = a.m_float4 * __builtin_shufflevector(b.m_float4, b.m_float4, 1, 0, -1, -1);
 	return c4[0] - c4[1];	
 }
 
@@ -533,9 +533,8 @@ inline b2Vec2 b2Cross(const b2Vec2& a, float32 s)
 {
 	//return b2Vec2(s * a.y, -s * a.x);
 	float32x4 s4 = {s};
-	float32x4 r4 = {1.0, -1.0, 0.0, 0.0};
-	float32x4 f4 = __builtin_shufflevector(a.m_float4, a.m_float4, 1, 0, -1, -1) * s4 * r4;
-	return b2Vec2(f4);
+	float32x4 f4 = a.m_float4 * s4;
+	return b2Vec2(f4[1], -f4[0]);
 }
 
 /// Perform the cross product on a scalar and a vector. In 2D this produces
@@ -544,9 +543,8 @@ inline b2Vec2 b2Cross(float32 s, const b2Vec2& a)
 {
 	//return b2Vec2(-s * a.y, s * a.x);
 	float32x4 s4 = {s};
-	float32x4 r4 = {-1.0, 1.0, 0.0, 0.0};
-	float32x4 f4 = __builtin_shufflevector(a.m_float4, a.m_float4, 1, 0, -1, -1) * s4 * r4;
-	return b2Vec2(f4);
+	float32x4 f4 = a.m_float4 * s4;
+	return b2Vec2(-f4[1], f4[0]);
 }
 
 /// Multiply a matrix times a vector. If a rotation matrix is provided,
@@ -638,10 +636,12 @@ inline float32 b2Dot(const b2Vec3& a, const b2Vec3& b)
 /// Perform the cross product on two vectors.
 inline b2Vec3 b2Cross(const b2Vec3& a, const b2Vec3& b)
 {
-	//return b2Vec3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+	//return b2Vec3(a.y * b.z - a.z * b.y, 
+	//              a.z * b.x - a.x * b.z, 
+	//              a.x * b.y - a.y * b.x);
 	float32x4 ayzx = __builtin_shufflevector(a.m_float4, a.m_float4, 1, 2, 0, -1);
-	float32x4 bzyx = __builtin_shufflevector(b.m_float4, b.m_float4, 2, 1, 0, -1);
-	float32x4 f4 = ayzx * bzyx;
+	float32x4 bzxy = __builtin_shufflevector(b.m_float4, b.m_float4, 2, 0, 1, -1);
+	float32x4 f4 = ayzx * bzxy;
 	float32x4 azxy = __builtin_shufflevector(a.m_float4, a.m_float4, 2, 0, 1, -1);
 	float32x4 byzx = __builtin_shufflevector(b.m_float4, b.m_float4, 1, 2, 0, -1);
 	f4 -= azxy * byzx;
@@ -670,17 +670,20 @@ inline b2Mat22 b2MulT(const b2Mat22& A, const b2Mat22& B)
 /// Multiply a matrix times a vector.
 inline b2Vec3 b2Mul(const b2Mat33& A, const b2Vec3& v)
 {
-	//return v.x() * A.ex + v.y() * A.ey + v.z() * A.ez;
+	return v.x() * A.ex + v.y() * A.ey + v.z() * A.ez;
+	/*
 	float32x4 f4 = A.ex.m_float4 * __builtin_shufflevector(v.m_float4, v.m_float4, 0, 0, 0, -1);
 	f4 += A.ey.m_float4 * __builtin_shufflevector(v.m_float4, v.m_float4, 1, 1, 1, -1);
 	f4 += A.ez.m_float4 * __builtin_shufflevector(v.m_float4, v.m_float4, 2, 2, 2, -1);
 	return b2Vec3(f4);
+	*/
 }
 
 /// Multiply a matrix times a vector.
 inline b2Vec2 b2Mul22(const b2Mat33& A, const b2Vec2& v)
 {
-	//return b2Vec2(A.ex.x * v.x + A.ey.x * v.y, A.ex.y * v.x + A.ey.y * v.y);
+	//return b2Vec2(A.ex.x * v.x + A.ey.x * v.y,
+	//              A.ex.y * v.x + A.ey.y * v.y);
 	float32x4 f4 = A.ex.m_float4 * __builtin_shufflevector(v.m_float4, v.m_float4, 0, 0, -1, -1);
 	f4 += A.ey.m_float4 * __builtin_shufflevector(v.m_float4, v.m_float4, 1, 1, -1, -1);
 	return b2Vec2(f4);
@@ -772,8 +775,8 @@ inline b2Vec2 b2Mul(const b2Transform& T, const b2Vec2& v)
 	f4 += T.p.m_float4;
 	return b2Vec2(f4);
 	*/
-	float32x4 x4 = T.q.m_float4 * v.m_float4;
-	float32x4 y4 = __builtin_shufflevector(T.q.m_float4, T.q.m_float4, 1, 0, -1, -1) * v.m_float4;
+	float32x4 x4 = __builtin_shufflevector(T.q.m_float4, T.q.m_float4, 1, 0, -1, -1) * v.m_float4;
+	float32x4 y4 = T.q.m_float4 * v.m_float4;
 	float32x4 r4 = {x4[0] + x4[1], y4[0] + y4[1], 0, 0};
 	r4 += T.p.m_float4;
 	return b2Vec2(r4);
@@ -786,12 +789,19 @@ inline b2Vec2 b2MulT(const b2Transform& T, const b2Vec2& v)
 	//float32 x = (T.q.c * px + T.q.s * py);
 	//float32 y = (-T.q.s * px + T.q.c * py);
 	//return b2Vec2(x, y);
+	/*
 	float32x4 r4 = {1.0, -1.0, 0.0, 0.0};
 	float32x4 p4 = v.m_float4 - T.p.m_float4;
 	float32x4 f4 = __builtin_shufflevector(T.q.m_float4, T.q.m_float4, 1, 0, -1, -1) *
 	               r4 * __builtin_shufflevector(p4, p4, 0, 0, -1, -1);
 	f4 += T.q.m_float4 * __builtin_shufflevector(p4, p4, 1, 1, -1, -1);
-	return b2Vec2(f4);
+	*/
+	float32 px = v.x() - T.p.x();
+	float32 py = v.y() - T.p.y();
+	float32x4 p4 = {px, py, 0.0, 0.0};
+	float32x4 x4 = __builtin_shufflevector(T.q.m_float4, T.q.m_float4, 1, 0, -1, -1) * p4;
+	float32x4 y4 = T.q.m_float4 * p4;
+	return b2Vec2(x4[0] + x4[1], -y4[0] + y4[1]);
 }
 
 // v2 = A.q.Rot(B.q.Rot(v1) + B.p) + A.p
