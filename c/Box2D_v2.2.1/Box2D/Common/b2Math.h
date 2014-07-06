@@ -398,6 +398,12 @@ struct b2Rot
 
 	explicit b2Rot(float32x4 f4) : m_float4(f4) {}
 
+	explicit b2Rot(float32 s, float32 c) 
+	{
+		set_s(s);
+		set_c(c);
+	}
+
 	/// Initialize from an angle in radians
 	explicit b2Rot(float32 angle)
 	{
@@ -687,12 +693,17 @@ inline b2Rot b2Mul(const b2Rot& q, const b2Rot& r)
 	// [qs  qc]   [rs  rc]   [qs*rc+qc*rs -qs*rs+qc*rc]
 	// s = qs * rc + qc * rs
 	// c = qc * rc - qs * rs
+	/*
 	float32x4 r4 = {1.0, -1.0, 0.0, 0.0};
 	float32x4 f4 = q.m_float4 * __builtin_shufflevector(r.m_float4, r.m_float4, 1, 1, -1, -1);
 	f4 += __builtin_shufflevector(q.m_float4, q.m_float4, 1, 0, -1, -1) * 
 	      __builtin_shufflevector(r.m_float4, r.m_float4, 0, 0, -1, -1) *
 	      r4;
 	return b2Rot(f4);
+	*/
+	float32x4 s4 = q.m_float4 * __builtin_shufflevector(r.m_float4, r.m_float4, 1, 0, -1, -1);
+	float32x4 c4 = q.m_float4 * r.m_float4;
+	return b2Rot(s4[0] + s4[1], -c4[0] + c4[1]);
 }
 
 /// Transpose multiply two rotations: qT * r
@@ -702,24 +713,34 @@ inline b2Rot b2MulT(const b2Rot& q, const b2Rot& r)
 	// [-qs qc]   [rs  rc]   [-qs*rc+qc*rs qs*rs+qc*rc]
 	// s = qc * rs - qs * rc
 	// c = qc * rc + qs * rs
+	/*
 	float32x4 r4 = {-1.0, 1.0, 0.0, 0.0};
 	float32x4 f4 = __builtin_shufflevector(q.m_float4, q.m_float4, 1, 1, -1, -1) * r.m_float4;
 	f4 += __builtin_shufflevector(q.m_float4, q.m_float4, 0, 0, -1, -1) *
 	      __builtin_shufflevector(r.m_float4, r.m_float4, 1, 1, -1, -1) *
 	      r4;
-	return b2Rot(f4);	
+	return b2Rot(f4);
+	*/
+	float32x4 s4 = __builtin_shufflevector(q.m_float4, q.m_float4, 1, 0, -1, -1) * r.m_float4;
+	float32x4 c4 = q.m_float4 * r.m_float4;
+	return b2Rot(s4[0] - s4[1], c4[0] + c4[1]);	
 }
 
 /// Rotate a vector
 inline b2Vec2 b2Mul(const b2Rot& q, const b2Vec2& v)
 {
 	//return b2Vec2(q.c * v.x - q.s * v.y, q.s * v.x + q.c * v.y);
+	/*
 	float32x4 r4 = {-1.0, 1.0, 0.0, 0.0};
 	float32x4 f4 = __builtin_shufflevector(q.m_float4, q.m_float4, 1, 0, -1, -1) *
 	               __builtin_shufflevector(v.m_float4, v.m_float4, 0, 0, -1, -1);
 	f4 += q.m_float4 * __builtin_shufflevector(v.m_float4, v.m_float4, 1, 1, -1, -1) *
 	      r4;
 	return b2Vec2(f4);
+	*/
+	float32x4 x4 = __builtin_shufflevector(q.m_float4, q.m_float4, 1, 0, -1, -1) * v.m_float4;
+	float32x4 y4 = q.m_float4 * v.m_float4;
+	return b2Vec2(x4[0] - x4[1], y4[0] + y4[1]);
 }
 
 /// Inverse rotate a vector
