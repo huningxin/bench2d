@@ -96,7 +96,7 @@ result_t bench() {
 		clock_t end = clock();
 		times[i] = end - start;
 #if DEBUG
-    printf("%f :: ", topBody->GetPosition().y);
+    printf("%f :: ", topBody->GetPosition().y());
 		printf("%f\n", (float32)(end - start) / CLOCKS_PER_SEC * 1000);
 #endif
 	}
