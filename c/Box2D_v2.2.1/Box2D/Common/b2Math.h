@@ -26,8 +26,8 @@
 #include <cstddef>
 #include <limits>
 
-typedef float32 float32x4 __attribute__ ((vector_size (16)));
-typedef int32 int32x4 __attribute__ ((vector_size (16)));
+typedef float32 float32x4 __attribute__ ((vector_size (16), aligned(1)));
+typedef int32 int32x4 __attribute__ ((vector_size (16), aligned(1)));
 
 /// This function is used to ensure that a floating point number is
 /// not a NaN or infinity.
@@ -71,7 +71,7 @@ struct b2Vec2
 
 	/// Construct using coordinates.
 	//b2Vec2(float32 x, float32 y) : x(x), y(y) {}
-	b2Vec2(float32 x, float32 y) {
+	explicit b2Vec2(float32 x, float32 y) {
 		m_float4[0] = x;
 		m_float4[1] = y;
 		m_float4[2] = 0.0;
