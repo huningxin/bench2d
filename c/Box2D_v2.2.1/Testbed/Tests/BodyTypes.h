@@ -133,10 +133,10 @@ public:
 			b2Vec2 p = m_platform->GetTransform().p;
 			b2Vec2 v = m_platform->GetLinearVelocity();
 
-			if ((p.x < -10.0f && v.x < 0.0f) ||
-				(p.x > 10.0f && v.x > 0.0f))
+			if ((p.x() < -10.0f && v.x() < 0.0f) ||
+				(p.x() > 10.0f && v.x() > 0.0f))
 			{
-				v.x = -v.x;
+				v.set_x( -v.x());
 				m_platform->SetLinearVelocity(v);
 			}
 		}

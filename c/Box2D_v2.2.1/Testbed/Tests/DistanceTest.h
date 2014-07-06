@@ -96,19 +96,19 @@ public:
 		switch (key)
 		{
 		case 'a':
-			m_positionB.x -= 0.1f;
+			m_positionB.set_x(m_positionB.x() - 0.1f);
 			break;
 
 		case 'd':
-			m_positionB.x += 0.1f;
+			m_positionB.set_x(m_positionB.x() + 0.1f);
 			break;
 
 		case 's':
-			m_positionB.y -= 0.1f;
+			m_positionB.set_y(m_positionB.y() - 0.1f);
 			break;
 
 		case 'w':
-			m_positionB.y += 0.1f;
+			m_positionB.set_y(m_positionB.y() - 0.1f);
 			break;
 
 		case 'q':

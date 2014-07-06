@@ -37,26 +37,26 @@ public:
 		{
 			float32 a = 0.5f;
 			b2BodyDef bd;
-			bd.position.y = -a;
+			bd.position.set_y(bd.position.y()-a);
 			b2Body* ground = m_world->CreateBody(&bd);
 
 #if 1
 			int32 N = 200;
 			int32 M = 10;
 			b2Vec2 position;
-			position.y = 0.0f;
+			position.set_y(0.0f);
 			for (int32 j = 0; j < M; ++j)
 			{
-				position.x = -N * a;
+				position.set_x(-N * a);
 				for (int32 i = 0; i < N; ++i)
 				{
 					b2PolygonShape shape;
 					shape.SetAsBox(a, a, position, 0.0f);
 					ground->CreateFixture(&shape, 0.0f);
 					++m_fixtureCount;
-					position.x += 2.0f * a;
+					position.set_x(position.x() + 2.0f * a);
 				}
-				position.y -= 2.0f * a;
+				position.set_y(position.y() - 2.0f * a);
 			}
 #else
 			int32 N = 200;

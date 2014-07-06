@@ -230,7 +230,7 @@ public:
 	void Step(Settings* settings)
 	{
 		b2Vec2 v = m_character->GetLinearVelocity();
-		v.x = -5.0f;
+		v.set_x(-5.0f);
 		m_character->SetLinearVelocity(v);
 
 		Test::Step(settings);

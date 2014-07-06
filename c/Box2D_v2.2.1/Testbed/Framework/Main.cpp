@@ -62,7 +62,7 @@ static void Resize(int32 w, int32 h)
 	b2Vec2 upper = settings.viewCenter + extents;
 
 	// L/R/B/T
-	gluOrtho2D(lower.x, upper.x, lower.y, upper.y);
+	gluOrtho2D(lower.x(), upper.x(), lower.y(), upper.y());
 }
 
 static b2Vec2 ConvertScreenToWorld(int32 x, int32 y)
@@ -78,8 +78,8 @@ static b2Vec2 ConvertScreenToWorld(int32 x, int32 y)
 	b2Vec2 upper = settings.viewCenter + extents;
 
 	b2Vec2 p;
-	p.x = (1.0f - u) * lower.x + u * upper.x;
-	p.y = (1.0f - v) * lower.y + v * upper.y;
+	p.set_x((1.0f - u) * lower.x() + u * upper.x());
+	p.set_y((1.0f - v) * lower.y() + v * upper.y());
 	return p;
 }
 
@@ -102,7 +102,7 @@ static void SimulationLoop()
 	b2Vec2 oldCenter = settings.viewCenter;
 	settings.hz = settingsHz;
 	test->Step(&settings);
-	if (oldCenter.x != settings.viewCenter.x || oldCenter.y != settings.viewCenter.y)
+	if (oldCenter.x() != settings.viewCenter.x() || oldCenter.y() != settings.viewCenter.y())
 	{
 		Resize(width, height);
 	}
@@ -206,25 +206,25 @@ static void KeyboardSpecial(int key, int x, int y)
 	case GLUT_ACTIVE_SHIFT:
 		// Press left to pan left.
 	case GLUT_KEY_LEFT:
-		settings.viewCenter.x -= 0.5f;
+		settings.viewCenter.set_x(settings.viewCenter.x() - 0.5f);
 		Resize(width, height);
 		break;
 
 		// Press right to pan right.
 	case GLUT_KEY_RIGHT:
-		settings.viewCenter.x += 0.5f;
+		settings.viewCenter.set_x(settings.viewCenter.x() + 0.5f);
 		Resize(width, height);
 		break;
 
 		// Press down to pan down.
 	case GLUT_KEY_DOWN:
-		settings.viewCenter.y -= 0.5f;
+		settings.viewCenter.set_y(settings.viewCenter.y() - 0.5f);
 		Resize(width, height);
 		break;
 
 		// Press up to pan up.
 	case GLUT_KEY_UP:
-		settings.viewCenter.y += 0.5f;
+		settings.viewCenter.set_y(settings.viewCenter.y() + 0.5f);
 		Resize(width, height);
 		break;
 
@@ -296,8 +296,8 @@ static void MouseMotion(int32 x, int32 y)
 	if (rMouseDown)
 	{
 		b2Vec2 diff = p - lastp;
-		settings.viewCenter.x -= diff.x;
-		settings.viewCenter.y -= diff.y;
+		settings.viewCenter.set_x(settings.viewCenter.x() - diff.x());
+		settings.viewCenter.set_y(settings.viewCenter.y() - diff.y());
 		Resize(width, height);
 		lastp = ConvertScreenToWorld(x, y);
 	}
