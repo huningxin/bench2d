@@ -524,7 +524,7 @@ inline float32 b2Cross(const b2Vec2& a, const b2Vec2& b)
 {
 	//a.x * b.y - a.y * b.x;
     float32x4 c4 = a.m_float4 * __builtin_shufflevector(b.m_float4, b.m_float4, 1, 0, -1, -1);
-	return c4[0] - c4[1];	
+	return c4[0] - c4[1];
 }
 
 /// Perform the cross product on a vector and a scalar. In 2D this produces
@@ -623,7 +623,7 @@ inline b2Vec3 operator + (const b2Vec3& a, const b2Vec3& b)
 inline b2Vec3 operator - (const b2Vec3& a, const b2Vec3& b)
 {
 	//return b2Vec3(a.x - b.x, a.y - b.y, a.z - b.z);
-	return b2Vec3(a.m_float4 - a.m_float4);
+	return b2Vec3(a.m_float4 - b.m_float4);
 }
 
 /// Perform the dot product on two vectors.
