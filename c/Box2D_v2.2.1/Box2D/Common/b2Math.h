@@ -323,10 +323,8 @@ struct b2Mat22
 		}
 		//B.ex.x =  det * d;      B.ey.x = -det * b;
 		//B.ex.y = -det * c;      B.ey.y =  det * a;
-		B.ex.set_x(det * d);	
-		B.ey.set_x(-det * b);
-		B.ex.set_y(-det * c);
-		B.ey.set_y(det * a);
+		B.ex.set_x(det * d);	  B.ey.set_x(-det * b);
+		B.ex.set_y(-det * c);     B.ey.set_y(det * a);
 		return B;
 	}
 
@@ -761,7 +759,7 @@ inline b2Vec2 b2MulT(const b2Rot& q, const b2Vec2& v)
 	*/
 	float32x4 x4 = __builtin_shufflevector(q.m_float4, q.m_float4, 1, 0, -1, -1) * v.m_float4;
 	float32x4 y4 = q.m_float4 * v.m_float4;
-	return b2Vec2(x4[0] + x4[1], -y4[0] + y4[0]);
+	return b2Vec2(x4[0] + x4[1], -y4[0] + y4[1]);
 }
 
 inline b2Vec2 b2Mul(const b2Transform& T, const b2Vec2& v)
@@ -778,7 +776,7 @@ inline b2Vec2 b2Mul(const b2Transform& T, const b2Vec2& v)
 	*/
 	float32x4 x4 = __builtin_shufflevector(T.q.m_float4, T.q.m_float4, 1, 0, -1, -1) * v.m_float4;
 	float32x4 y4 = T.q.m_float4 * v.m_float4;
-	float32x4 r4 = {x4[0] + x4[1], y4[0] + y4[1], 0.0, 0.0};
+	float32x4 r4 = {x4[0] - x4[1], y4[0] + y4[1], 0.0, 0.0};
 	r4 += T.p.m_float4;
 	return b2Vec2(r4);
 }
