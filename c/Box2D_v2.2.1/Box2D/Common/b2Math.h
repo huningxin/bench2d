@@ -138,7 +138,7 @@ struct b2Vec2
 	void operator *= (float32 a)
 	{
 		//x *= a; y *= a;
-		float32x4 a4 = {a};
+		float32x4 a4 = {a, a, 0.0, 0.0};
 		m_float4 *= a4;
 	}
 
@@ -170,7 +170,7 @@ struct b2Vec2
 		float32 invLength = 1.0f / length;
 		//x *= invLength;
 		//y *= invLength;
-		float32x4 invLength4 = {invLength};
+		float32x4 invLength4 = {invLength, invLength, 0.0, 0.0};
 		m_float4 *= invLength4;
 
 		return length;
@@ -247,7 +247,7 @@ struct b2Vec3
 	void operator *= (float32 s)
 	{
 		//x *= s; y *= s; z *= s;
-		float32x4 s4 = {s};
+		float32x4 s4 = {s, s, s, 0.0};
 		m_float4 *= s4;
 	}
 
@@ -532,7 +532,7 @@ inline float32 b2Cross(const b2Vec2& a, const b2Vec2& b)
 inline b2Vec2 b2Cross(const b2Vec2& a, float32 s)
 {
 	//return b2Vec2(s * a.y, -s * a.x);
-	float32x4 s4 = {s};
+	float32x4 s4 = {s, s, 0.0, 0.0};
 	float32x4 f4 = a.m_float4 * s4;
 	return b2Vec2(f4[1], -f4[0]);
 }
@@ -542,7 +542,7 @@ inline b2Vec2 b2Cross(const b2Vec2& a, float32 s)
 inline b2Vec2 b2Cross(float32 s, const b2Vec2& a)
 {
 	//return b2Vec2(-s * a.y, s * a.x);
-	float32x4 s4 = {s};
+	float32x4 s4 = {s, s, 0.0, 0.0};
 	float32x4 f4 = a.m_float4 * s4;
 	return b2Vec2(-f4[1], f4[0]);
 }
@@ -551,7 +551,8 @@ inline b2Vec2 b2Cross(float32 s, const b2Vec2& a)
 /// then this transforms the vector from one frame to another.
 inline b2Vec2 b2Mul(const b2Mat22& A, const b2Vec2& v)
 {
-	//return b2Vec2(A.ex.x * v.x + A.ey.x * v.y, A.ex.y * v.x + A.ey.y * v.y);
+	//return b2Vec2(A.ex.x * v.x + A.ey.x * v.y, 
+	//              A.ex.y * v.x + A.ey.y * v.y);
 	float32x4 f4 = A.ex.m_float4 * __builtin_shufflevector(v.m_float4, v.m_float4, 0, 0, -1, -1);
 	f4 += A.ey.m_float4 * __builtin_shufflevector(v.m_float4, v.m_float4, 1, 1, -1, -1);
 	return b2Vec2(f4);
@@ -581,7 +582,7 @@ inline b2Vec2 operator - (const b2Vec2& a, const b2Vec2& b)
 inline b2Vec2 operator * (float32 s, const b2Vec2& a)
 {
 	//return b2Vec2(s * a.x, s * a.y);
-	float32x4 s4 = {s};
+	float32x4 s4 = {s, s, 0.0, 0.0};
 	return b2Vec2(a.m_float4 * s4);
 }
 
@@ -607,7 +608,7 @@ inline float32 b2DistanceSquared(const b2Vec2& a, const b2Vec2& b)
 inline b2Vec3 operator * (float32 s, const b2Vec3& a)
 {
 	//return b2Vec3(s * a.x, s * a.y, s * a.z);
-	float32x4 s4 = {s};
+	float32x4 s4 = {s, s, s, 0.0};
 	return b2Vec3(a.m_float4 * s4);
 }
 
@@ -777,7 +778,7 @@ inline b2Vec2 b2Mul(const b2Transform& T, const b2Vec2& v)
 	*/
 	float32x4 x4 = __builtin_shufflevector(T.q.m_float4, T.q.m_float4, 1, 0, -1, -1) * v.m_float4;
 	float32x4 y4 = T.q.m_float4 * v.m_float4;
-	float32x4 r4 = {x4[0] + x4[1], y4[0] + y4[1], 0, 0};
+	float32x4 r4 = {x4[0] + x4[1], y4[0] + y4[1], 0.0, 0.0};
 	r4 += T.p.m_float4;
 	return b2Vec2(r4);
 }
