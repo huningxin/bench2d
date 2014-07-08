@@ -71,10 +71,8 @@ struct b2Vec2
 
 	/// Construct using coordinates.
 	explicit b2Vec2(float32 x, float32 y) {
-		m_float4[0] = x;
-		m_float4[1] = y;
-		m_float4[2] = 0.0;
-		m_float4[3] = 0.0;
+		float32x4 f4 = {x, y, 0.0f, 0.0f};
+		m_float4 = f4;
 	}
 
 	explicit b2Vec2(float32x4 f4) : m_float4(f4) {}
@@ -84,10 +82,8 @@ struct b2Vec2
 
 	/// Set this vector to some specified coordinates.
 	void Set(float32 x_, float32 y_) { 
-		m_float4[0] = x_;
-		m_float4[1] = y_;
-		m_float4[2] = 0.0;
-		m_float4[3] = 0.0;
+		float32x4 f4 = {x_, y_, 0.0f, 0.0f};
+		m_float4 = f4;
 	}
 
 	/// Negate this vector.
