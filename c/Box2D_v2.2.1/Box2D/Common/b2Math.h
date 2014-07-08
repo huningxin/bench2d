@@ -129,8 +129,7 @@ struct b2Vec2
 	/// Get the length of this vector (the norm).
 	float32 Length() const
 	{
-		float32x4 f4 = m_float4 * m_float4;
-		return b2Sqrt(f4[0] + f4[1]);
+		return b2Sqrt(LengthSquared());
 	}
 
 	/// Get the length squared. For performance, use this instead of
@@ -138,7 +137,8 @@ struct b2Vec2
 	float32 LengthSquared() const
 	{
 		float32x4 f4 = m_float4 * m_float4;
-		return f4[0] + f4[1];
+		f4 += __builtin_shufflevector(f4, f4, 1, -1, -1, -1);
+		return f4[0];
 	}
 
 	/// Convert this vector into a unit vector. Returns the length.
