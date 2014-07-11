@@ -1,5 +1,5 @@
 CC = clang++
-CFLAGS = -O2 -IBox2D_v2.2.1 -DNDEBUG=1 -I/usr/lib/gcc/i686-pc-cygwin/4.8.3/include/c++/ -I/usr/lib/gcc/i686-pc-cygwin/4.8.3/include/c++/x86_64-pc-cygwin/ -I/usr/lib/gcc/i686-pc-cygwin/4.8.3/include/c++/backward/ -I/usr/lib/gcc/i686-pc-cygwin/4.8.3/include/c++/i686-pc-cygwin/
+CFLAGS = -g -O2 -IBox2D_v2.2.1 -DNDEBUG=1 -I/usr/lib/gcc/i686-pc-cygwin/4.8.3/include/c++/ -I/usr/lib/gcc/i686-pc-cygwin/4.8.3/include/c++/x86_64-pc-cygwin/ -I/usr/lib/gcc/i686-pc-cygwin/4.8.3/include/c++/backward/ -I/usr/lib/gcc/i686-pc-cygwin/4.8.3/include/c++/i686-pc-cygwin/
 LFLAGS = -lstdc++ -lm
 
 OBJECTS = \
