@@ -19,6 +19,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Testbed", "Testbed.vcxproj"
 		{6F01DB00-32F0-A842-9B60-3ABA75A2D458} = {6F01DB00-32F0-A842-9B60-3ABA75A2D458}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Bench2D", "Bench2D.vcxproj", "{1369A7E3-857D-4B28-A178-BFA24529156B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -67,6 +69,12 @@ Global
 		{3FC8974C-9179-4D4E-A5E0-79E3C836548F}.Release|Win32.Build.0 = Release|Win32
 		{3FC8974C-9179-4D4E-A5E0-79E3C836548F}.Release|x64.ActiveCfg = Release|x64
 		{3FC8974C-9179-4D4E-A5E0-79E3C836548F}.Release|x64.Build.0 = Release|x64
+		{1369A7E3-857D-4B28-A178-BFA24529156B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1369A7E3-857D-4B28-A178-BFA24529156B}.Debug|Win32.Build.0 = Debug|Win32
+		{1369A7E3-857D-4B28-A178-BFA24529156B}.Debug|x64.ActiveCfg = Debug|Win32
+		{1369A7E3-857D-4B28-A178-BFA24529156B}.Release|Win32.ActiveCfg = Release|Win32
+		{1369A7E3-857D-4B28-A178-BFA24529156B}.Release|Win32.Build.0 = Release|Win32
+		{1369A7E3-857D-4B28-A178-BFA24529156B}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
