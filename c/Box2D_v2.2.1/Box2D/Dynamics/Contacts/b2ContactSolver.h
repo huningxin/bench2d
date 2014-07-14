@@ -88,6 +88,10 @@ public:
 	b2ContactVelocityConstraint* m_velocityConstraints;
 	b2Contact** m_contacts;
 	int m_count;
+
+private:
+	float32 SolvePositionConstraintsScalar(b2ContactPositionConstraint** array, int32 count);
+	float32 SolvePositionConstraintsSIMD(b2ContactPositionConstraint** array, int32 count);
 };
 
 #endif
