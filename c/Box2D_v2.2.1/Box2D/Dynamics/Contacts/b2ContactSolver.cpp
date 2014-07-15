@@ -27,6 +27,7 @@
 #include <Box2D/Common/b2StackAllocator.h>
 
 #define B2_DEBUG_SOLVER 0
+#define B2_DEBUG_SIMD 0
 
 struct b2ContactPositionConstraint
 {
@@ -691,6 +692,12 @@ float32 b2ContactSolver::SolvePositionConstraintsScalar(b2ContactPositionConstra
 		b2Vec2 cB = m_positions[indexB].c;
 		float32 aB = m_positions[indexB].a;
 
+#if B2_DEBUG_SIMD == 1
+		if (pc->type == b2Manifold::e_faceA && pc->pointCount == 2) {
+			printf("input - indexA = %d indexB = %d cA.x = %f cA.y = %f aA = %f cB.x = %f cB.y = %f aB = %f\n", indexA, indexB, cA.x, cA.y, aA, cB.x, cB.y, aB);
+		}
+#endif
+
 		// Solve normal constraints
 		for (int32 j = 0; j < pointCount; ++j)
 		{
@@ -700,9 +707,21 @@ float32 b2ContactSolver::SolvePositionConstraintsScalar(b2ContactPositionConstra
 			xfA.p = cA - b2Mul(xfA.q, localCenterA);
 			xfB.p = cB - b2Mul(xfB.q, localCenterB);
 
+#if B2_DEBUG_SIMD == 1
+			if (pc->type == b2Manifold::e_faceA && pc->pointCount == 2) {
+				printf("xfA.p.x = %f xfA.p.y = %f xfB.p.x = %f xfB.p.y = %f\n", xfA.p.x, xfA.p.y, xfB.p.x, xfB.p.y);
+			}
+#endif
+
 			b2PositionSolverManifold psm;
 			psm.Initialize(pc, xfA, xfB, j);
 			b2Vec2 normal = psm.normal;
+
+#if B2_DEBUG_SIMD == 1
+			if (pc->type == b2Manifold::e_faceA && pc->pointCount == 2) {
+				printf("normal.x = %f normal.y = %f\n", normal.x, normal.y);
+			}
+#endif
 
 			b2Vec2 point = psm.point;
 			float32 separation = psm.separation;
@@ -726,6 +745,12 @@ float32 b2ContactSolver::SolvePositionConstraintsScalar(b2ContactPositionConstra
 
 			b2Vec2 P = impulse * normal;
 
+#if B2_DEBUG_SIMD == 1
+			if (pc->type == b2Manifold::e_faceA && pc->pointCount == 2) {
+				printf("P.x = %f P.y = %f\n", P.x, P.y);
+			}
+#endif
+
 			cA -= mA * P;
 			aA -= iA * b2Cross(rA, P);
 
@@ -738,6 +763,12 @@ float32 b2ContactSolver::SolvePositionConstraintsScalar(b2ContactPositionConstra
 
 		m_positions[indexB].c = cB;
 		m_positions[indexB].a = aB;
+
+#if B2_DEBUG_SIMD == 1
+		if (pc->type == b2Manifold::e_faceA && pc->pointCount == 2) {
+			printf("output - cA.x = %f cA.y = %f aA = %f cB.x = %f cB.y = %f aB = %f\n", cA.x, cA.y, aA, cB.x, cB.y, aB);
+		}
+#endif
 	}
 
 	return minSeparation;
@@ -745,7 +776,10 @@ float32 b2ContactSolver::SolvePositionConstraintsScalar(b2ContactPositionConstra
 
 float32 b2ContactSolver::SolvePositionConstraintsSIMD(b2ContactPositionConstraint** pc_array, int32 count)
 {
-	// faceA with same pointsCount
+	static const __m128 SIGNMASK = _mm_castsi128_ps(_mm_set1_epi32(0x80000000));
+
+	// pc_array contains pcs with same type and pointsCount
+	b2Manifold::Type type = pc_array[0]->type;
 	int32 pointCount = pc_array[0]->pointCount;
 
 	__m128 minSeparation4 = _mm_set_ps1(0.0f);
@@ -798,8 +832,6 @@ float32 b2ContactSolver::SolvePositionConstraintsSIMD(b2ContactPositionConstrain
 		localNormal_y_array[i] = pc->localNormal.y;
 		localPoint_x_array[i] = pc->localPoint.x;
 		localPoint_y_array[i] = pc->localPoint.y;
-		int32 indexA = pc->indexA;
-		int32 indexB = pc->indexB;
 		localCenterA_x_array[i] = pc->localCenterA.x;
 		localCenterA_y_array[i] = pc->localCenterA.y;
 		mA_array[i] = pc->invMassA;
@@ -811,10 +843,11 @@ float32 b2ContactSolver::SolvePositionConstraintsSIMD(b2ContactPositionConstrain
 		radiusA_array[i] = pc->radiusA;
 		radiusB_array[i] = pc->radiusB;
 	
+		int32 indexA = pc->indexA;
+		int32 indexB = pc->indexB;
 		cA_x_array[i] = m_positions[indexA].c.x;
 		cA_y_array[i] = m_positions[indexA].c.y;
 		aA_array[i] = m_positions[indexA].a;
-
 		cB_x_array[i] = m_positions[indexB].c.x;
 		cB_y_array[i] = m_positions[indexB].c.y;
 		aB_array[i] = m_positions[indexB].a;
@@ -848,28 +881,6 @@ float32 b2ContactSolver::SolvePositionConstraintsSIMD(b2ContactPositionConstrain
 		//float32 aB = m_positions[indexB].a;
 		__m128 aB4 = _mm_loadu_ps(aB_array + i);
 
-		// xfA.q.Set(aA);
-		__m128 xfA_q_s4, xfA_q_c4;
-		xfA_q_s4.m128_f32[0] = sinf(aA_array[i]);
-		xfA_q_s4.m128_f32[1] = sinf(aA_array[i + 1]);
-		xfA_q_s4.m128_f32[2] = sinf(aA_array[i + 2]);
-		xfA_q_s4.m128_f32[3] = sinf(aA_array[i + 3]);
-		xfA_q_c4.m128_f32[0] = cosf(aA_array[i]);
-		xfA_q_c4.m128_f32[1] = cosf(aA_array[i + 1]);
-		xfA_q_c4.m128_f32[2] = cosf(aA_array[i + 2]);
-		xfA_q_c4.m128_f32[3] = cosf(aA_array[i + 3]);
-
-		// xfB.q.Set(aB);
-		__m128 xfB_q_s4, xfB_q_c4;
-		xfB_q_s4.m128_f32[0] = sinf(aB_array[i]);
-		xfB_q_s4.m128_f32[1] = sinf(aB_array[i + 1]);
-		xfB_q_s4.m128_f32[2] = sinf(aB_array[i + 2]);
-		xfB_q_s4.m128_f32[3] = sinf(aB_array[i + 3]);
-		xfB_q_c4.m128_f32[0] = cosf(aB_array[i]);
-		xfB_q_c4.m128_f32[1] = cosf(aB_array[i + 1]);
-		xfB_q_c4.m128_f32[2] = cosf(aB_array[i + 2]);
-		xfB_q_c4.m128_f32[3] = cosf(aB_array[i + 3]);
-
 		__m128 localNormal_x4 = _mm_loadu_ps(localNormal_x_array + i);
 		__m128 localNormal_y4 = _mm_loadu_ps(localNormal_y_array + i);
 		__m128 localPoint_x4 = _mm_loadu_ps(localPoint_x_array + i);
@@ -877,8 +888,37 @@ float32 b2ContactSolver::SolvePositionConstraintsSIMD(b2ContactPositionConstrain
 		__m128 radiusA4 = _mm_loadu_ps(radiusA_array + i);
 		__m128 radiusB4 = _mm_loadu_ps(radiusB_array + i);
 
+#if B2_DEBUG_SIMD == 1
+		printf("input - cA.x = %f cA.y = %f aA = %f cB.x = %f cB.y = %f aB = %f\n", cA_x4.m128_f32[0], cA_y4.m128_f32[0], aA4.m128_f32[0], cB_x4.m128_f32[0], cB_y4.m128_f32[0], aB4.m128_f32[0]);
+		printf("input - cA.x = %f cA.y = %f aA = %f cB.x = %f cB.y = %f aB = %f\n", cA_x4.m128_f32[1], cA_y4.m128_f32[1], aA4.m128_f32[1], cB_x4.m128_f32[1], cB_y4.m128_f32[1], aB4.m128_f32[1]);
+		printf("input - cA.x = %f cA.y = %f aA = %f cB.x = %f cB.y = %f aB = %f\n", cA_x4.m128_f32[2], cA_y4.m128_f32[2], aA4.m128_f32[2], cB_x4.m128_f32[2], cB_y4.m128_f32[2], aB4.m128_f32[2]);
+		printf("input - cA.x = %f cA.y = %f aA = %f cB.x = %f cB.y = %f aB = %f\n", cA_x4.m128_f32[3], cA_y4.m128_f32[3], aA4.m128_f32[3], cB_x4.m128_f32[3], cB_y4.m128_f32[3], aB4.m128_f32[3]);
+#endif
+
 		for (int32 j = 0; j < pointCount; ++j)
 		{
+			// xfA.q.Set(aA);
+			__m128 xfA_q_s4, xfA_q_c4;
+			xfA_q_s4.m128_f32[0] = sinf(aA4.m128_f32[0]);
+			xfA_q_s4.m128_f32[1] = sinf(aA4.m128_f32[1]);
+			xfA_q_s4.m128_f32[2] = sinf(aA4.m128_f32[2]);
+			xfA_q_s4.m128_f32[3] = sinf(aA4.m128_f32[3]);
+			xfA_q_c4.m128_f32[0] = cosf(aA4.m128_f32[0]);
+			xfA_q_c4.m128_f32[1] = cosf(aA4.m128_f32[1]);
+			xfA_q_c4.m128_f32[2] = cosf(aA4.m128_f32[2]);
+			xfA_q_c4.m128_f32[3] = cosf(aA4.m128_f32[3]);
+
+			// xfB.q.Set(aB);
+			__m128 xfB_q_s4, xfB_q_c4;
+			xfB_q_s4.m128_f32[0] = sinf(aB4.m128_f32[0]);
+			xfB_q_s4.m128_f32[1] = sinf(aB4.m128_f32[1]);
+			xfB_q_s4.m128_f32[2] = sinf(aB4.m128_f32[2]);
+			xfB_q_s4.m128_f32[3] = sinf(aB4.m128_f32[3]);
+			xfB_q_c4.m128_f32[0] = cosf(aB4.m128_f32[0]);
+			xfB_q_c4.m128_f32[1] = cosf(aB4.m128_f32[1]);
+			xfB_q_c4.m128_f32[2] = cosf(aB4.m128_f32[2]);
+			xfB_q_c4.m128_f32[3] = cosf(aB4.m128_f32[3]);
+
 			// xfA.p = cA - b2Mul(xfA.q, localCenterA);
 			__m128 xfA_p_x4, xfA_p_y4;
 			xfA_p_x4 = _mm_sub_ps(cA_x4, _mm_sub_ps(_mm_mul_ps(xfA_q_c4, localCenterA_x4),
@@ -893,54 +933,118 @@ float32 b2ContactSolver::SolvePositionConstraintsSIMD(b2ContactPositionConstrain
 			xfB_p_y4 = _mm_sub_ps(cB_y4, _mm_add_ps(_mm_mul_ps(xfB_q_s4, localCenterB_x4),
 												    _mm_mul_ps(xfB_q_c4, localCenterB_y4)));
 
+#if B2_DEBUG_SIMD == 1
+			printf("xfA.p.x = %f xfA.p.y = %f xfB.p.x = %f xfB.p.y = %f\n", xfA_p_x4.m128_f32[0], xfA_p_y4.m128_f32[0], xfB_p_x4.m128_f32[0], xfB_p_y4.m128_f32[0]);
+			printf("xfA.p.x = %f xfA.p.y = %f xfB.p.x = %f xfB.p.y = %f\n", xfA_p_x4.m128_f32[1], xfA_p_y4.m128_f32[1], xfB_p_x4.m128_f32[1], xfB_p_y4.m128_f32[1]);
+			printf("xfA.p.x = %f xfA.p.y = %f xfB.p.x = %f xfB.p.y = %f\n", xfA_p_x4.m128_f32[2], xfA_p_y4.m128_f32[2], xfB_p_x4.m128_f32[2], xfB_p_y4.m128_f32[2]);
+			printf("xfA.p.x = %f xfA.p.y = %f xfB.p.x = %f xfB.p.y = %f\n", xfA_p_x4.m128_f32[3], xfA_p_y4.m128_f32[3], xfB_p_x4.m128_f32[3], xfB_p_y4.m128_f32[3]);
+#endif
+
 			// b2PositionSolverManifold psm;
 			// psm.Initialize(pc, xfA, xfB, j);
-			// b2Vec2 normal = psm.normal;
-			// b2Vec2 point = psm.point;
-			// float32 separation = psm.separation;
+			//b2Vec2 normal = psm.normal;
 
-			// normal = b2Mul(xfA.q, pc->localNormal);
+			//b2Vec2 point = psm.point;
+			//float32 separation = psm.separation;
 			__m128 normal_x4, normal_y4;
-			normal_x4 = _mm_sub_ps(_mm_mul_ps(xfA_q_c4, localNormal_x4),
-								   _mm_mul_ps(xfA_q_s4, localNormal_y4));
-			normal_y4 = _mm_add_ps(_mm_mul_ps(xfA_q_s4, localNormal_x4),
-								   _mm_mul_ps(xfA_q_c4, localNormal_y4));
+			__m128 point_x4, point_y4;
+			__m128 separation4;
+			if (type == b2Manifold::e_faceA) {
+				// normal = b2Mul(xfA.q, pc->localNormal);
+				normal_x4 = _mm_sub_ps(_mm_mul_ps(xfA_q_c4, localNormal_x4),
+									   _mm_mul_ps(xfA_q_s4, localNormal_y4));
+				normal_y4 = _mm_add_ps(_mm_mul_ps(xfA_q_s4, localNormal_x4),
+									   _mm_mul_ps(xfA_q_c4, localNormal_y4));
 
-			// b2Vec2 planePoint = b2Mul(xfA, pc->localPoint);
-			__m128 planePoint_x4, planePoint_y4;
-			planePoint_x4 = _mm_add_ps(_mm_sub_ps(_mm_mul_ps(xfA_q_c4, localPoint_x4),
-												  _mm_mul_ps(xfA_q_s4, localPoint_y4)),
-									   xfA_p_x4);
-			planePoint_y4 = _mm_add_ps(_mm_add_ps(_mm_mul_ps(xfA_q_s4, localPoint_x4),
-												  _mm_mul_ps(xfA_q_c4, localPoint_y4)),
-									   xfA_p_y4);
+#if B2_DEBUG_SIMD == 1
+				printf("normal.x = %f normal.y = %f\n", normal_x4.m128_f32[0], normal_y4.m128_f32[0]);
+				printf("normal.x = %f normal.y = %f\n", normal_x4.m128_f32[1], normal_y4.m128_f32[1]);
+				printf("normal.x = %f normal.y = %f\n", normal_x4.m128_f32[2], normal_y4.m128_f32[2]);
+				printf("normal.x = %f normal.y = %f\n", normal_x4.m128_f32[3], normal_y4.m128_f32[3]);
+#endif
 
-			// b2Vec2 clipPoint = b2Mul(xfB, pc->localPoints[index]);
-			__m128 localPoints_x4 = _mm_loadu_ps(localPoints_x_array[j] + i * 4);
-			__m128 localPoints_y4 = _mm_loadu_ps(localPoints_y_array[j] + i * 4);
-			__m128 clipPoint_x4, clipPoint_y4;
-			clipPoint_x4 = _mm_add_ps(_mm_sub_ps(_mm_mul_ps(xfB_q_c4, localPoints_x4),
-												 _mm_mul_ps(xfB_q_s4, localPoints_y4)),
-									  xfB_p_x4);
-			clipPoint_y4 = _mm_add_ps(_mm_add_ps(_mm_mul_ps(xfB_q_s4, localPoints_x4),
-												 _mm_mul_ps(xfB_q_c4, localPoints_y4)),
-									  xfB_p_y4);
+				// b2Vec2 planePoint = b2Mul(xfA, pc->localPoint);
+				__m128 planePoint_x4, planePoint_y4;
+				planePoint_x4 = _mm_add_ps(_mm_sub_ps(_mm_mul_ps(xfA_q_c4, localPoint_x4),
+													  _mm_mul_ps(xfA_q_s4, localPoint_y4)),
+										   xfA_p_x4);
+				planePoint_y4 = _mm_add_ps(_mm_add_ps(_mm_mul_ps(xfA_q_s4, localPoint_x4),
+													  _mm_mul_ps(xfA_q_c4, localPoint_y4)),
+										   xfA_p_y4);
 
-			// separation = b2Dot(clipPoint - planePoint, normal) - pc->radiusA - pc->radiusB;
-			__m128 temp_x4 = _mm_sub_ps(clipPoint_x4, planePoint_x4);
-			__m128 temp_y4 = _mm_sub_ps(clipPoint_y4, planePoint_y4);
-			__m128 separation4 = _mm_sub_ps(_mm_sub_ps(_mm_add_ps(_mm_mul_ps(temp_x4, normal_x4),
-													              _mm_mul_ps(temp_y4, normal_y4)),
-				                                       radiusA4),
-										    radiusB4);
+				// b2Vec2 clipPoint = b2Mul(xfB, pc->localPoints[index]);
+				__m128 clipPoint_x4, clipPoint_y4;
+				__m128 localPoints_x4 = _mm_loadu_ps(localPoints_x_array[j] + i);
+				__m128 localPoints_y4 = _mm_loadu_ps(localPoints_y_array[j] + i);
+				
+				clipPoint_x4 = _mm_add_ps(_mm_sub_ps(_mm_mul_ps(xfB_q_c4, localPoints_x4),
+													 _mm_mul_ps(xfB_q_s4, localPoints_y4)),
+										  xfB_p_x4);
+				clipPoint_y4 = _mm_add_ps(_mm_add_ps(_mm_mul_ps(xfB_q_s4, localPoints_x4),
+													 _mm_mul_ps(xfB_q_c4, localPoints_y4)),
+										  xfB_p_y4);
+
+				// separation = b2Dot(clipPoint - planePoint, normal) - pc->radiusA - pc->radiusB;
+				__m128 temp_x4 = _mm_sub_ps(clipPoint_x4, planePoint_x4);
+				__m128 temp_y4 = _mm_sub_ps(clipPoint_y4, planePoint_y4);
+				separation4 = _mm_sub_ps(_mm_sub_ps(_mm_add_ps(_mm_mul_ps(temp_x4, normal_x4),
+															   _mm_mul_ps(temp_y4, normal_y4)),
+												    radiusA4),
+										 radiusB4);
+				// point = clipPoint;
+				point_x4 = clipPoint_x4;
+				point_y4 = clipPoint_y4;
+			} else if (type == b2Manifold::e_faceB) {
+				//normal = b2Mul(xfB.q, pc->localNormal);
+				normal_x4 = _mm_sub_ps(_mm_mul_ps(xfB_q_c4, localNormal_x4),
+									   _mm_mul_ps(xfB_q_s4, localNormal_y4));
+				normal_y4 = _mm_add_ps(_mm_mul_ps(xfB_q_s4, localNormal_x4),
+									   _mm_mul_ps(xfB_q_c4, localNormal_y4));
+
+				//b2Vec2 planePoint = b2Mul(xfB, pc->localPoint);
+				__m128 planePoint_x4, planePoint_y4;
+				planePoint_x4 = _mm_add_ps(_mm_sub_ps(_mm_mul_ps(xfB_q_c4, localPoint_x4),
+													  _mm_mul_ps(xfB_q_s4, localPoint_y4)),
+										   xfB_p_x4);
+				planePoint_y4 = _mm_add_ps(_mm_add_ps(_mm_mul_ps(xfB_q_s4, localPoint_x4),
+													  _mm_mul_ps(xfB_q_c4, localPoint_y4)),
+										   xfB_p_y4);
+				//b2Vec2 clipPoint = b2Mul(xfA, pc->localPoints[index]);
+				__m128 clipPoint_x4, clipPoint_y4;
+				__m128 localPoints_x4 = _mm_loadu_ps(localPoints_x_array[j] + i);
+				__m128 localPoints_y4 = _mm_loadu_ps(localPoints_y_array[j] + i);
+				
+				clipPoint_x4 = _mm_add_ps(_mm_sub_ps(_mm_mul_ps(xfA_q_c4, localPoints_x4),
+													 _mm_mul_ps(xfA_q_s4, localPoints_y4)),
+										  xfB_p_x4);
+				clipPoint_y4 = _mm_add_ps(_mm_add_ps(_mm_mul_ps(xfA_q_s4, localPoints_x4),
+													 _mm_mul_ps(xfA_q_c4, localPoints_y4)),
+										  xfB_p_y4);
+				//separation = b2Dot(clipPoint - planePoint, normal) - pc->radiusA - pc->radiusB;
+				__m128 temp_x4 = _mm_sub_ps(clipPoint_x4, planePoint_x4);
+				__m128 temp_y4 = _mm_sub_ps(clipPoint_y4, planePoint_y4);
+				separation4 = _mm_sub_ps(_mm_sub_ps(_mm_add_ps(_mm_mul_ps(temp_x4, normal_x4),
+															   _mm_mul_ps(temp_y4, normal_y4)),
+												    radiusA4),
+										 radiusB4);
+				//point = clipPoint;
+				point_x4 = clipPoint_x4;
+				point_y4 = clipPoint_y4;
+
+				//normal = -normal;
+				normal_x4 = _mm_xor_ps(normal_x4, SIGNMASK);
+				normal_y4 = _mm_xor_ps(normal_y4, SIGNMASK);
+			} else {
+				b2Assert(false);
+			}
 
 			// b2Vec2 rA = point - cA;
-			__m128 rA_x4 = _mm_sub_ps(clipPoint_x4, cA_x4);
-			__m128 rA_y4 = _mm_sub_ps(clipPoint_y4, cA_y4);
+			__m128 rA_x4 = _mm_sub_ps(point_x4, cA_x4);
+			__m128 rA_y4 = _mm_sub_ps(point_y4, cA_y4);
 
 			// b2Vec2 rB = point - cB;
-			__m128 rB_x4 = _mm_sub_ps(clipPoint_x4, cB_x4);
-			__m128 rB_y4 = _mm_sub_ps(clipPoint_y4, cB_y4);
+			__m128 rB_x4 = _mm_sub_ps(point_x4, cB_x4);
+			__m128 rB_y4 = _mm_sub_ps(point_y4, cB_y4);
 
 			// minSeparation = b2Min(minSeparation, separation);
 			minSeparation4 = _mm_min_ps(minSeparation4, separation4);
@@ -957,7 +1061,7 @@ float32 b2ContactSolver::SolvePositionConstraintsSIMD(b2ContactPositionConstrain
 				                     _mm_mul_ps(rA_y4, normal_x4));
 			// float32 rnB = b2Cross(rB, normal);
 			__m128 rnB4 = _mm_sub_ps(_mm_mul_ps(rB_x4, normal_y4),
-				                      _mm_mul_ps(rB_y4, normal_x4));
+				                     _mm_mul_ps(rB_y4, normal_x4));
 			// float32 K = mA + mB + iA * rnA * rnA + iB * rnB * rnB;
 			__m128 K4 = _mm_add_ps(_mm_add_ps(_mm_add_ps(mA4, mB4),
 				                              _mm_mul_ps(_mm_mul_ps(rnA4, rnA4), iA4)),
@@ -966,7 +1070,6 @@ float32 b2ContactSolver::SolvePositionConstraintsSIMD(b2ContactPositionConstrain
 			// float32 impulse = K > 0.0f ? - C / K : 0.0f;
 			__m128 trueValue = _mm_div_ps(C4, K4);
 			// negate it.
-			static const __m128 SIGNMASK = _mm_castsi128_ps(_mm_set1_epi32(0x80000000));
 			trueValue = _mm_xor_ps(trueValue, SIGNMASK);
 
 			 __m128 mask = _mm_cmpgt_ps(K4, zero4);
@@ -976,6 +1079,13 @@ float32 b2ContactSolver::SolvePositionConstraintsSIMD(b2ContactPositionConstrain
 			// b2Vec2 P = impulse * normal;
 			__m128 P_x4 = _mm_mul_ps(normal_x4, impulse4);
 			__m128 P_y4 = _mm_mul_ps(normal_y4, impulse4);
+
+#if B2_DEBUG_SIMD == 1
+			printf("P.x = %f P.y = %f\n", P_x4.m128_f32[0], P_y4.m128_f32[0]);
+			printf("P.x = %f P.y = %f\n", P_x4.m128_f32[1], P_y4.m128_f32[1]);
+			printf("P.x = %f P.y = %f\n", P_x4.m128_f32[2], P_y4.m128_f32[2]);
+			printf("P.x = %f P.y = %f\n", P_x4.m128_f32[3], P_y4.m128_f32[3]);
+#endif
 
 			// cA -= mA * P;
 			cA_x4 = _mm_sub_ps(cA_x4, _mm_mul_ps(mA4, P_x4));
@@ -999,6 +1109,13 @@ float32 b2ContactSolver::SolvePositionConstraintsSIMD(b2ContactPositionConstrain
 		_mm_storeu_ps(cB_x_array + i, cB_x4);
 		_mm_storeu_ps(cB_y_array + i, cB_y4);
 		_mm_storeu_ps(aB_array + i, aB4);
+
+#if B2_DEBUG_SIMD == 1
+		printf("output - cA.x = %f cA.y = %f aA = %f cB.x = %f cB.y = %f aB = %f\n",  cA_x4.m128_f32[0], cA_y4.m128_f32[0], aA4.m128_f32[0], cB_x4.m128_f32[0], cB_y4.m128_f32[0], aB4.m128_f32[0]);
+		printf("output - cA.x = %f cA.y = %f aA = %f cB.x = %f cB.y = %f aB = %f\n",  cA_x4.m128_f32[1], cA_y4.m128_f32[1], aA4.m128_f32[1], cB_x4.m128_f32[1], cB_y4.m128_f32[1], aB4.m128_f32[1]);
+		printf("output - cA.x = %f cA.y = %f aA = %f cB.x = %f cB.y = %f aB = %f\n",  cA_x4.m128_f32[2], cA_y4.m128_f32[2], aA4.m128_f32[2], cB_x4.m128_f32[2], cB_y4.m128_f32[2], aB4.m128_f32[2]);
+		printf("output - cA.x = %f cA.y = %f aA = %f cB.x = %f cB.y = %f aB = %f\n",  cA_x4.m128_f32[3], cA_y4.m128_f32[3], aA4.m128_f32[3], cB_x4.m128_f32[3], cB_y4.m128_f32[3], aB4.m128_f32[3]);
+#endif
 	}
 
 	for (int32 i = 0; i < count; ++i)
@@ -1032,34 +1149,47 @@ float32 b2ContactSolver::SolvePositionConstraintsSIMD(b2ContactPositionConstrain
 bool b2ContactSolver::SolvePositionConstraints()
 {
 	float32 minSeparation = 0.0f;
-	b2ContactPositionConstraint** simd_array = 
+	b2ContactPositionConstraint** faceA_simd_array = 
+		(b2ContactPositionConstraint**)m_allocator->Allocate(m_count * sizeof(b2ContactPositionConstraint*));
+	b2ContactPositionConstraint** faceB_simd_array = 
 		(b2ContactPositionConstraint**)m_allocator->Allocate(m_count * sizeof(b2ContactPositionConstraint*));
 	b2ContactPositionConstraint** scalar_array = 
 		(b2ContactPositionConstraint**)m_allocator->Allocate(m_count * sizeof(b2ContactPositionConstraint*));
-	int32 simd_index = 0;
+	int32 faceA_simd_index = 0;
+	int32 faceB_simd_index = 0;
 	int32 scalar_index = 0;
 	for (int32 i = 0; i < m_count; ++i)
 	{
 		b2ContactPositionConstraint* pc = m_positionConstraints + i;
+		// TODO(ningxin): fix the hard code pointCount.
+		// SolvePositionConstraintsSIMD can handle any number of pointCount,
+		// it just needs the element in array has same pointCount.
 		if (pc->type == b2Manifold::e_faceA && pc->pointCount == 2)
 		{
-			simd_array[simd_index++] = pc;
-		} else 
+			faceA_simd_array[faceA_simd_index++] = pc;
+		} if (pc->type == b2Manifold::e_faceB && pc->pointCount == 2)
+		{
+			faceB_simd_array[faceB_simd_index++] = pc;
+		} else
 		{
 			scalar_array[scalar_index++] = pc;
 		}
 	}
 
+	// Need to resolve the dependencies of SIMD arrays.
+	
+
 	//printf("simd_index %d scalar_index %d\n", simd_index, scalar_index);
 
-	float32 min1 = 0.0f, min2 = 0.0f;
-	if (simd_index > 0)
-		min1 = SolvePositionConstraintsSIMD(simd_array, simd_index);
+	if (faceA_simd_index > 0)
+		b2Min(minSeparation, SolvePositionConstraintsSIMD(faceA_simd_array, faceA_simd_index));
+	if (faceB_simd_index > 0)
+		b2Min(minSeparation, SolvePositionConstraintsSIMD(faceB_simd_array, faceB_simd_index));
 	if (scalar_index > 0)
-		min2 = SolvePositionConstraintsScalar(scalar_array, scalar_index);
+		b2Min(minSeparation, SolvePositionConstraintsScalar(scalar_array, scalar_index));
 	m_allocator->Free(scalar_array);
-	m_allocator->Free(simd_array);
-	minSeparation = b2Min(min1, min2);
+	m_allocator->Free(faceB_simd_array);
+	m_allocator->Free(faceA_simd_array);
 	// We can't expect minSpeparation >= -b2_linearSlop because we don't
 	// push the separation above -b2_linearSlop.
 	return minSeparation >= -3.0f * b2_linearSlop;
