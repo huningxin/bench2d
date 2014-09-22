@@ -13,6 +13,6 @@ typedef struct {
   float pc_95th;
 } result_t;
 
-result_t bench();
+result_t bench(int argc, char** argv);
 
 #endif

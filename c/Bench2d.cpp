@@ -37,7 +37,8 @@ result_t measure(clock_t times[FRAMES]) {
   return r;
 }
 
-result_t bench() {
+result_t bench(int argc, char **argv) {
+    b2Params::init(argc, argv);    
 	// Define the gravity vector.
 	b2Vec2 gravity(0.0f, -10.0f);
 
@@ -101,5 +102,6 @@ result_t bench() {
 #endif
 	}
 
+  b2Counters::dump();
   return measure(times);
 }

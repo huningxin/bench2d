@@ -147,4 +147,38 @@ struct b2Version
 /// Current version.
 extern b2Version b2_version;
 
+/// Parameters
+class b2Params {
+public:
+  static void init(int argc, char **argv);
+  static bool useSimd;
+};
+
+/// Counters
+#define COUNTERS 1
+class b2Counters {
+public:
+  static int solvePositionConstraints;
+  static int pointCountsEqual;
+  static int pointCountsNotEqual;
+  static int pointCount1;
+  static int pointCount2;
+  static int pointCountOther;
+  static void dump();
+};
+
+#if COUNTERS == 1
+  #define COUNTER_INC(counter) (b2Counters::counter)++;
+  #define COUNTER_COND_INC(cond,counter) if (cond) (b2Counters::counter)++
+#else
+  #define COUNTER_INC
+#endif
+
+#define TEST_OUTPUT 1
+#if TEST_OUTPUT == 1
+  #define TEST_PRINTF(args) b2Log args
+#else
+  #define TEST_PRINTF
+#endif
+
 #endif

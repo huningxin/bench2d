@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstdarg>
+#include <string.h>
 
 b2Version b2_version = {2, 2, 1};
 
@@ -41,4 +42,33 @@ void b2Log(const char* string, ...)
 	va_start(args, string);
 	vprintf(string, args);
 	va_end(args);
+}
+
+bool b2Params::useSimd = false;
+void b2Params::init(int argc, char **argv) {
+  if (argc <= 1) {
+    return;
+  }
+  if (strcmp(argv[1], "simd") == 0) {
+    useSimd = true;
+  }
+  if (strcmp(argv[1], "nosimd") == 0) {
+    useSimd = false;
+  }
+}
+
+int b2Counters::solvePositionConstraints;
+int b2Counters::pointCountsEqual;
+int b2Counters::pointCountsNotEqual;
+int b2Counters::pointCount1;
+int b2Counters::pointCount2;
+int b2Counters::pointCountOther;
+
+void b2Counters::dump() {
+    b2Log("solvePositionConstraints: %d\n", solvePositionConstraints);
+    b2Log("pointCountsEqual:         %d\n", pointCountsEqual);
+    b2Log("pointCountsNotEqual:      %d\n", pointCountsNotEqual);
+    b2Log("pointCount1:              %d\n", pointCount1);
+    b2Log("pointCount2:              %d\n", pointCount2);
+    b2Log("pointCountOther:          %d\n", pointCountOther);
 }

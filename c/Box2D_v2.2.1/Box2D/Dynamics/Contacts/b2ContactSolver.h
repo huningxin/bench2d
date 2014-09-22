@@ -78,6 +78,7 @@ public:
 	void StoreImpulses();
 
 	bool SolvePositionConstraints();
+    bool SimdSolvePositionConstraints();
 	bool SolveTOIPositionConstraints(int32 toiIndexA, int32 toiIndexB);
 
 	b2TimeStep m_step;
@@ -88,6 +89,8 @@ public:
 	b2ContactVelocityConstraint* m_velocityConstraints;
 	b2Contact** m_contacts;
 	int m_count;
+private:
+   float32 SolveHelper(int32 StartIndex, int32 count);
 };
 
 #endif
