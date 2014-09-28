@@ -151,7 +151,14 @@ extern b2Version b2_version;
 class b2Params {
 public:
   static void init(int argc, char **argv);
-  static bool useSimd;
+  static bool simd;
+  static bool dumpPos;
+  static bool dumpCon;
+  static bool testOut;
+  static bool debug;
+  static bool frame1;
+  static bool frame10;
+  static bool sortPos;
 };
 
 /// Counters
@@ -164,6 +171,10 @@ public:
   static int pointCount1;
   static int pointCount2;
   static int pointCountOther;
+  static int indexAOverlap;
+  static int indexBOverlap;
+  static int noIndexOverlap;
+  static int minSeparationOk;
   static void dump();
 };
 
@@ -176,9 +187,29 @@ public:
 
 #define TEST_OUTPUT 1
 #if TEST_OUTPUT == 1
-  #define TEST_PRINTF(args) b2Log args
+  #define TEST_PRINTF(args) if (b2Params::testOut) b2Log args
+  #define TEST_BLOCK(stmts) if (b2Params::testOut) stmts
+  #define TEST_COND(cond,stmts) if (cond) stmts
 #else
-  #define TEST_PRINTF
+  #define TEST_PRINTF(args)
+  #define TEST_BLOCK(stmts)
+  #define TEST_COND(cond,stmts)
 #endif
+
+class b2Cycles {
+public:
+  b2Cycles(int32 cycleIndex, char *cycleName);
+  ~b2Cycles();
+  static void dump();
+private:
+  int32 m_currentIndex;
+  static const int32 m_maxCycles = 100;
+  struct cycleData {
+    char             *cycleName;
+    unsigned __int64  start;
+    unsigned __int64  total;
+  };
+  static cycleData m_cycles[m_maxCycles];
+};
 
 #endif

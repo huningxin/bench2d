@@ -2,8 +2,10 @@
 #define __BENCH2D__
 
 // Turn this on to include the y-position of the top box in the output.
-#define DEBUG 0
+#define DEBUG 1
 
+//#define WARMUP 64
+//#define FRAMES 256
 #define WARMUP 64
 #define FRAMES 256
 

@@ -125,6 +125,13 @@ b2ContactSolver::b2ContactSolver(b2ContactSolverDef* def)
 			pc->localPoints[j] = cp->localPoint;
 		}
 	}
+    if (b2Params::sortPos) {
+      SortPositionConstraints();
+    }
+    TEST_COND(b2Params::dumpCon, {
+      TEST_PRINTF(("PositionConstraints:\n"));
+      DumpPositionConstraints();
+    });
 }
 
 b2ContactSolver::~b2ContactSolver()
@@ -654,7 +661,8 @@ struct b2PositionSolverManifold
 			}
 			break;
 		}
-              	}
+        TEST_PRINTF(("psm.separation: %10.4f\n", separation));
+    }
 
 	b2Vec2 normal;
 	b2Vec2 point;
@@ -663,16 +671,36 @@ struct b2PositionSolverManifold
 
 
 // Sequential solver.
-bool b2ContactSolver::SimdSolvePositionConstraints()
+float32 b2ContactSolver::SimdSolvePositionConstraints()
 {
 	float32 minSeparation = 0.0f;
 
-	for (int32 i = 0; i < m_count>>2; i+=4)
+	for (int32 i = 0; i < (m_count-3); i+=4)
 	{
 		b2ContactPositionConstraint *pc = m_positionConstraints + i;
 
         int32 indexA[4] = {pc->indexA, (pc+1)->indexA, (pc+2)->indexA, (pc+3)->indexA};
         int32 indexB[4] = {pc->indexB, (pc+1)->indexB, (pc+2)->indexB, (pc+3)->indexB};
+        if (indexA[0] == indexA[1] || indexA[0] == indexA[2] || indexA[0] == indexA[3] ||
+            indexA[1] == indexA[2] || indexA[1] == indexA[3] ||
+            indexA[2] == indexA[3]) {
+          // doesn't deal with aliasing between the 4 lanes
+          COUNTER_INC(indexAOverlap);
+//          float32 minSep = SolveHelper(i, 4);
+//          minSeparation = b2Min(minSeparation, minSep);
+//          continue;
+        }
+        else if (indexB[0] == indexB[1] || indexB[0] == indexB[2] || indexB[0] == indexB[3] ||
+            indexB[1] == indexB[2] || indexB[1] == indexB[3] ||
+            indexB[2] == indexB[3]) {
+          COUNTER_INC(indexBOverlap);
+//          float32 minSep = SolveHelper(i, 4);
+//          minSeparation = b2Min(minSeparation, minSep);
+//          continue;
+        }
+        else {
+          COUNTER_INC(noIndexOverlap);
+        }
         b2Vec2 localCenterA[4] = {pc->localCenterA, (pc+1)->localCenterA,
                                   (pc+2)->localCenterA, (pc+3)->localCenterA};
         float32 mA[4] = {pc->invMassA, (pc+1)->invMassA, (pc+2)->invMassA, (pc+3)->invMassA};
@@ -702,7 +730,7 @@ bool b2ContactSolver::SimdSolvePositionConstraints()
           COUNTER_COND_INC(pointCount[0] == 1, pointCount1);
           COUNTER_COND_INC(pointCount[0] == 2, pointCount2);
           COUNTER_COND_INC(pointCount[0] != 1 && pointCount[0] != 2, pointCountOther);
-          if (pointCount[0] == 1) {
+          if (pointCount[0] == 100) { // not working
 			    b2Transform xfA[4], xfB[4];
 			    xfA[0].q.Set(aA[0]);
 			    xfA[1].q.Set(aA[1]);
@@ -813,6 +841,10 @@ bool b2ContactSolver::SimdSolvePositionConstraints()
           }
           else {
             for (int32 i4 = 0; i4 < 4; ++i4) {
+              cA[i4] = m_positions[indexA[i4]].c;
+              aA[i4] = m_positions[indexA[i4]].a;
+              cB[i4] = m_positions[indexB[i4]].c;
+              aB[i4] = m_positions[indexB[i4]].a;
 		      for (int32 j = 0; j < pointCount[i4]; ++j)
 		      {
 			      b2Transform xfA, xfB;
@@ -853,12 +885,20 @@ bool b2ContactSolver::SimdSolvePositionConstraints()
 			      cB[i4] += mB[i4] * P;
 			      aB[i4] += iB[i4] * b2Cross(rB, P);
 		      }
+              m_positions[indexA[i4]].c = cA[i4];
+              m_positions[indexA[i4]].a = aA[i4];
+              m_positions[indexB[i4]].c = cB[i4];
+              m_positions[indexB[i4]].a = aB[i4];
             }
           }
         }
         else {
           COUNTER_INC(pointCountsNotEqual);
           for (int32 i4 = 0; i4 < 4; ++i4) {
+            cA[i4] = m_positions[indexA[i4]].c;
+            aA[i4] = m_positions[indexA[i4]].a;
+            cB[i4] = m_positions[indexB[i4]].c;
+            aB[i4] = m_positions[indexB[i4]].a;
 		    for (int32 j = 0; j < pointCount[i4]; ++j)
 		    {
 			    b2Transform xfA, xfB;
@@ -899,35 +939,13 @@ bool b2ContactSolver::SimdSolvePositionConstraints()
 			    cB[i4] += mB[i4] * P;
 			    aB[i4] += iB[i4] * b2Cross(rB, P);
 		    }
+            m_positions[indexA[i4]].c = cA[i4];
+            m_positions[indexA[i4]].a = aA[i4];
+            m_positions[indexB[i4]].c = cB[i4];
+            m_positions[indexB[i4]].a = aB[i4];
           }
         }
 
-		m_positions[indexA[0]].c = cA[0];
-		m_positions[indexA[1]].c = cA[1];
-		m_positions[indexA[2]].c = cA[2];
-		m_positions[indexA[3]].c = cA[3];
-
-        m_positions[indexA[0]].a = aA[0];
-        m_positions[indexA[1]].a = aA[1];
-        m_positions[indexA[2]].a = aA[2];
-        m_positions[indexA[3]].a = aA[3];
-
-		m_positions[indexB[0]].c = cB[0];
-		m_positions[indexB[1]].c = cB[1];
-		m_positions[indexB[2]].c = cB[2];
-		m_positions[indexB[3]].c = cB[3];
-
-        m_positions[indexB[0]].a = aB[0];
-        m_positions[indexB[1]].a = aB[1];
-        m_positions[indexB[2]].a = aB[2];
-        m_positions[indexB[3]].a = aB[3];
-#if TEST_OUTPUT == 1
-  static bool testOutput = true;
-  if (testOutput) {
-    testOutput = false;
-    b2Log("pos[%d].c = (%f, %f)\n", indexA[0], m_positions[indexA[0]].c.x, m_positions[indexA[0]].c.y);
-  }
-#endif
 	}
     
     int32 remCount = m_count & 3;
@@ -937,7 +955,7 @@ bool b2ContactSolver::SimdSolvePositionConstraints()
     }
 	// We can't expect minSpeparation >= -b2_linearSlop because we don't
 	// push the separation above -b2_linearSlop.
-	return minSeparation >= -3.0f * b2_linearSlop;
+	return minSeparation;
 }
 
 float32 b2ContactSolver::SolveHelper(int32 startIndex, int32 count) {
@@ -1010,13 +1028,6 @@ float32 b2ContactSolver::SolveHelper(int32 startIndex, int32 count) {
 
 		m_positions[indexB].c = cB;
 		m_positions[indexB].a = aB;
-#if TEST_OUTPUT == 1
-  static bool testOutput = true;
-  if (testOutput) {
-    testOutput = false;
-    b2Log("pos[%d].c = (%f, %f)\n", indexA, m_positions[indexA].c.x, m_positions[indexA].c.y);
-  }
-#endif
 	}
     return minSeparation;
 }
@@ -1025,13 +1036,30 @@ float32 b2ContactSolver::SolveHelper(int32 startIndex, int32 count) {
 bool b2ContactSolver::SolvePositionConstraints()
 {
     COUNTER_INC(solvePositionConstraints);
-    if (b2Params::useSimd) {
-      return SimdSolvePositionConstraints();
+    b2Cycles cycles(0, "SolvePositionConstrains");
+    float32 minSeparation;
+    if (b2Params::simd) {
+      b2Cycles cycles(1, "SimdSolvePositionConstraints");
+      minSeparation = SimdSolvePositionConstraints();
+    }
+    else {
+      b2Cycles cycles(2, "nonSimdSolvePositionConstraints");
+      minSeparation = SolveHelper(0, m_count);
     }
 
-	float32 minSeparation = 0.0f;
-    minSeparation = SolveHelper(0, m_count);
-	return minSeparation >= -3.0f * b2_linearSlop;
+    TEST_BLOCK({
+      TEST_PRINTF(("minSeparation: %10.4f\n", minSeparation));
+      if (b2Params::dumpPos) {
+        TEST_PRINTF(("Positions:\n"));
+        DumpPositions();
+      }
+    });
+
+    bool minSeparationOk = minSeparation >= -3.0f * b2_linearSlop;
+    if (minSeparationOk) {
+      COUNTER_INC(minSeparationOk);
+    }
+  	return minSeparationOk;
 }
 
 // Sequential position solver for position constraints.
@@ -1123,4 +1151,145 @@ bool b2ContactSolver::SolveTOIPositionConstraints(int32 toiIndexA, int32 toiInde
 	// We can't expect minSpeparation >= -b2_linearSlop because we don't
 	// push the separation above -b2_linearSlop.
 	return minSeparation >= -1.5f * b2_linearSlop;
+}
+
+bool b2ContactSolver::IsUnique(int32 index1, int32 index2, int32 *sorted) {
+  b2ContactPositionConstraint* pc2 = m_positionConstraints + sorted[index2];
+  int32 iA2 = pc2->indexA;
+  int32 iB2 = pc2->indexB;
+  int32 c2 = pc2->pointCount;
+  for (int32 index = index1; index < index2; ++index) {
+    b2ContactPositionConstraint* pc = m_positionConstraints + sorted[index];
+    if (pc->indexA == iA2 || pc->indexB == iB2) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool b2ContactSolver::Find4Uniques(int32 index, int32 *sorted) {
+  for (int32 i = 1; i < 4; ++i) {
+    int32 j = index + i;
+    int32 jStart = j;
+    while (!IsUnique(index, j, sorted) && j < m_count) {
+      j++;
+    }
+    if (j < m_count && j != jStart) {
+      int32 temp = sorted[jStart];
+      sorted[jStart] = sorted[j];
+      sorted[j] = temp;
+    }
+    else if (j == m_count) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void b2ContactSolver::Swap(int32 index1, int32 index2) {
+  b2ContactPositionConstraint *pc1 = m_positionConstraints + index1;
+  b2ContactPositionConstraint *pc2 = m_positionConstraints + index2;
+  b2ContactPositionConstraint temp;
+  temp = *pc1;
+  *pc1 = *pc2;
+  *pc2 = temp;
+}
+
+void b2ContactSolver::Dump4(int32 index) {
+  for (int32 i = index; i < index+4; ++i) {
+    b2ContactPositionConstraint *pc = m_positionConstraints + i;
+    b2Log("%4d. indexA: %4d, indexB: %4d\n", i, pc->indexA, pc->indexB);
+  }
+}
+
+void b2ContactSolver::Dump4Sorted(int32 index, int32 *sorted) {
+  for (int32 i = index; i < index+4; ++i) {
+    b2ContactPositionConstraint *pc = m_positionConstraints + sorted[i];
+    b2Log("%4d(%4d). indexA: %4d, indexB: %4d\n", sorted[i], i, pc->indexA, pc->indexB);
+  }
+}
+
+void b2ContactSolver::SortPositionConstraints() {
+  int32 *sorted = (int32 *)m_allocator->Allocate(m_count * sizeof(int32));
+  int32 i;
+  for (i = 0; i < m_count; ++i) {
+    sorted[i] = i;
+  }
+  for (i = 0; i < m_count-3; i += 4) {
+    bool found = Find4Uniques(i, sorted); 
+    if (!found) {
+      break;
+    }
+  }
+
+  b2ContactPositionConstraint *copy = (b2ContactPositionConstraint*)m_allocator->Allocate(m_count * sizeof(b2ContactPositionConstraint));
+  memcpy(copy, m_positionConstraints, m_count *sizeof (b2ContactPositionConstraint));
+  for (i = 0; i < m_count; ++i) {
+    if (sorted[i] != i) {
+      memcpy(m_positionConstraints + i, copy + sorted[i], sizeof (b2ContactPositionConstraint));
+    }
+  }
+  m_allocator->Free(copy);
+  m_allocator->Free(sorted);
+}
+
+void b2ContactSolver::DumpPositions() {
+  for (int32 i = 0; i < m_count; ++i) { // TODO: m_count is NOT the number of positions
+    b2Position *p = &(m_positions[i]);
+    b2Log("%4d. c: (%8.2f, %8.2f) a: %8.2f\n", i, p->c.x, p->c.y, p->a);
+  }
+}
+
+void b2ContactSolver::DumpPositionConstraints() {
+  int32 i;
+  int32 indexAOverlapCount   = 0;
+  int32 indexANoOverlapCount = 0;
+  int32 indexBOverlapCount   = 0;
+  int32 indexBNoOverlapCount = 0;
+  int32 indexOverlapCount    = 0;
+  int32 indexNoOverlapCount  = 0;
+  bool  indexAOverlap;
+  bool  indexBOverlap;
+
+  for (i = 0; i < m_count-3; i += 4) {
+    b2ContactPositionConstraint* pc = m_positionConstraints + i;
+    indexAOverlap = pc->indexA == (pc+1)->indexA || pc->indexA == (pc+2)->indexA || pc->indexA == (pc+3)->indexA ||
+                    (pc+1)->indexA == (pc+2)->indexA || (pc+1)->indexA == (pc+3)->indexA ||
+                    (pc+2)->indexA == (pc+3)->indexA;
+    indexBOverlap = pc->indexB == (pc+1)->indexB || pc->indexB == (pc+2)->indexB || pc->indexB == (pc+3)->indexB ||
+                    (pc+1)->indexB == (pc+2)->indexB || (pc+1)->indexB == (pc+3)->indexB ||
+                    (pc+2)->indexB == (pc+3)->indexB;
+    if (indexAOverlap) {
+      indexAOverlapCount++;
+    }
+    else {
+      indexANoOverlapCount++;
+    }
+    if (indexBOverlap) {
+      indexBOverlapCount++;
+    }
+    else {
+      indexBNoOverlapCount++;
+    }
+    if (indexAOverlap || indexBOverlap) {
+      indexOverlapCount++;
+    }
+    else {
+      indexNoOverlapCount++;
+    }
+    for (int32 i4 = 0; i4 < 4; ++i4) {
+      pc = m_positionConstraints + (i+i4);
+      b2Log("%4d. (indexA: %4d, indexB: %4d, pointCount: %4d)\n", i, pc->indexA, pc->indexB, pc->pointCount);
+    }
+  }
+  for (i = m_count & ~3; i < m_count; ++i) {
+    b2ContactPositionConstraint* pc = m_positionConstraints + i;
+    b2Log("%4d. (indexA: %4d, indexB: %4d, pointCount: %4d)\n", i, pc->indexA, pc->indexB, pc->pointCount);
+  }
+  b2Log("indexAOverlapCount:   %6d\n", indexAOverlapCount);
+  b2Log("indexANoOverlapCount: %6d\n", indexANoOverlapCount);
+  b2Log("indexBOverlapCount:   %6d\n", indexBOverlapCount);
+  b2Log("indexBNoOverlapCount: %6d\n", indexBNoOverlapCount);
+  b2Log("indexOverlapCount:    %6d\n", indexOverlapCount);
+  b2Log("indexNoOverlapCount:  %6d\n", indexNoOverlapCount);
 }

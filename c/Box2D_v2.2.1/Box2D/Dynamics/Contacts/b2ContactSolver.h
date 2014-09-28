@@ -77,9 +77,12 @@ public:
 	void SolveVelocityConstraints();
 	void StoreImpulses();
 
-	bool SolvePositionConstraints();
-    bool SimdSolvePositionConstraints();
-	bool SolveTOIPositionConstraints(int32 toiIndexA, int32 toiIndexB);
+	bool    SolvePositionConstraints();
+    float32 SimdSolvePositionConstraints();
+	bool    SolveTOIPositionConstraints(int32 toiIndexA, int32 toiIndexB);
+    void    DumpPositions();
+    void    DumpPositionConstraints();
+    void    SortPositionConstraints();
 
 	b2TimeStep m_step;
 	b2Position* m_positions;
@@ -90,7 +93,12 @@ public:
 	b2Contact** m_contacts;
 	int m_count;
 private:
-   float32 SolveHelper(int32 StartIndex, int32 count);
+  float32 SolveHelper(int32 StartIndex, int32 count);
+  bool    IsUnique(int32 index1, int32 index2, int32 *sorted);
+  bool    Find4Uniques(int32 index, int32 *sorted);
+  void    Swap(int32 index1, int32 index2);
+  void    Dump4Sorted(int32 index, int32 *sorted);
+  void    Dump4(int32 index);
 };
 
 #endif

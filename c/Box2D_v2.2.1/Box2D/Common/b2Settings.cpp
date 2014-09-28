@@ -21,6 +21,7 @@
 #include <cstdio>
 #include <cstdarg>
 #include <string.h>
+#include <intrin.h>
 
 b2Version b2_version = {2, 2, 1};
 
@@ -44,25 +45,60 @@ void b2Log(const char* string, ...)
 	va_end(args);
 }
 
-bool b2Params::useSimd = false;
+bool b2Params::simd    = false;
+bool b2Params::dumpPos = false;
+bool b2Params::dumpCon = false;
+bool b2Params::testOut = false;
+bool b2Params::debug   = false;
+bool b2Params::frame1  = false;
+bool b2Params::frame10 = false;
+bool b2Params::sortPos = false;
+
+
 void b2Params::init(int argc, char **argv) {
   if (argc <= 1) {
     return;
   }
-  if (strcmp(argv[1], "simd") == 0) {
-    useSimd = true;
-  }
-  if (strcmp(argv[1], "nosimd") == 0) {
-    useSimd = false;
+  for (int32 i = 1; i < argc; ++i) {
+    if (strcmp(argv[i], "simd") == 0) {
+      simd = true;
+    }
+    if (strcmp(argv[i], "dump") == 0) {
+      dumpPos = true;
+    }
+    if (strcmp(argv[i], "dumpCon") == 0) {
+      dumpCon = true;
+    }
+    if (strcmp(argv[i], "testOut") == 0) {
+      testOut = true;
+    }
+    if (strcmp(argv[i], "debug") == 0) {
+      debug = true;
+    }
+    if (strcmp(argv[i], "frame1") == 0) {
+      frame1 = true;
+      frame10 = false;
+    }
+    if (strcmp(argv[i], "frame10") == 0) {
+      frame10 = true;
+      frame1  = false;
+    }
+    if (strcmp(argv[i], "sortPos") == 0) {
+      sortPos = true;
+    }
   }
 }
 
-int b2Counters::solvePositionConstraints;
-int b2Counters::pointCountsEqual;
-int b2Counters::pointCountsNotEqual;
-int b2Counters::pointCount1;
-int b2Counters::pointCount2;
-int b2Counters::pointCountOther;
+int b2Counters::solvePositionConstraints = 0;
+int b2Counters::pointCountsEqual         = 0;
+int b2Counters::pointCountsNotEqual      = 0;
+int b2Counters::pointCount1              = 0;
+int b2Counters::pointCount2              = 0;
+int b2Counters::pointCountOther          = 0;
+int b2Counters::indexAOverlap            = 0;
+int b2Counters::indexBOverlap            = 0;
+int b2Counters::noIndexOverlap           = 0;
+int b2Counters::minSeparationOk          = 0;
 
 void b2Counters::dump() {
     b2Log("solvePositionConstraints: %d\n", solvePositionConstraints);
@@ -70,5 +106,42 @@ void b2Counters::dump() {
     b2Log("pointCountsNotEqual:      %d\n", pointCountsNotEqual);
     b2Log("pointCount1:              %d\n", pointCount1);
     b2Log("pointCount2:              %d\n", pointCount2);
-    b2Log("pointCountOther:          %d\n", pointCountOther);
+    b2Log("indexAOverlap:            %d\n", indexAOverlap);
+    b2Log("indexBOverlap:            %d\n", indexBOverlap);
+    b2Log("noIndexOverlap:           %d\n", noIndexOverlap);
+    b2Log("minSeparationOk:          %d\n", minSeparationOk);
 }
+
+b2Cycles::b2Cycles(int32 cycleIndex, char *cycleName) {
+  m_currentIndex = cycleIndex;
+  m_cycles[cycleIndex].cycleName = cycleName;
+  m_cycles[cycleIndex].start     = __rdtsc();
+}
+
+b2Cycles::~b2Cycles() {
+  unsigned __int64 stop = __rdtsc();
+  m_cycles[m_currentIndex].total += (stop - m_cycles[m_currentIndex].start);
+}
+
+void b2Cycles::dump() {
+  printf("Cycles:\n");
+  for (int32 i = 0; i < m_maxCycles; ++i) {
+    if (m_cycles[i].cycleName != NULL) {
+      double milCycles = ((double)m_cycles[i].total)/1000000.0;
+      printf("%s: %6.2fM\n", m_cycles[i].cycleName, milCycles);
+    }
+  }
+}
+
+b2Cycles::cycleData b2Cycles::m_cycles[b2Cycles::m_maxCycles];
+
+/*
+private:
+  static const maxCycles = 100;
+  static struct {
+    char             *cycleName;
+    unsigned __int64  start;
+    unsigned __int64  total;
+  }[maxCycles] cycles;
+};
+*/

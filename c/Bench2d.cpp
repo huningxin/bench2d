@@ -8,6 +8,7 @@
 
 using namespace std;
 
+//const int e_count = 40;
 const int e_count = 40;
 
 // Simple nearest-rank %ile (on sorted array). We should have enough samples to make this reasonable.
@@ -25,13 +26,14 @@ result_t measure(clock_t times[FRAMES]) {
   result_t r;
 
 	float total = 0;
-	for (int i = 0; i < FRAMES; ++i) {
+    int32 frameCount = b2Params::frame1 ? 1 : (b2Params::frame10 ? 10 : FRAMES);
+	for (int i = 0; i < frameCount; ++i) {
 		values[i] = (float)times[i] / CLOCKS_PER_SEC * 1000;
 	 	total += values[i];
 	}
-  r.mean = total / FRAMES;
+  r.mean = total / frameCount;
 
-	qsort(times, FRAMES, sizeof(clock_t), _cmp);
+	qsort(times, frameCount, sizeof(clock_t), _cmp);
   r.pc_5th = percentile(times, 5) / CLOCKS_PER_SEC * 1000;
   r.pc_95th = percentile(times, 95) / CLOCKS_PER_SEC * 1000;
   return r;
@@ -55,7 +57,7 @@ result_t bench(int argc, char **argv) {
 		ground->CreateFixture(&shape, 0.0f);
 	}
 
-  b2Body* topBody;
+  b2Body* topBody = NULL;
 
 	{
 		float32 a = 0.5f;
@@ -74,7 +76,7 @@ result_t bench(int argc, char **argv) {
 				b2BodyDef bd;
 				bd.type = b2_dynamicBody;
 				bd.position = y;
-				b2Body* body = world.CreateBody(&bd);
+				b2Body *body = world.CreateBody(&bd);
 				body->CreateFixture(&shape, 5.0f);
 
         topBody = body;
@@ -86,22 +88,27 @@ result_t bench(int argc, char **argv) {
 		}
 	}
 
-	for (int32 i = 0; i < WARMUP; ++i) {
+    if (!b2Params::frame1 && !b2Params::frame10) {
+	  for (int32 i = 0; i < WARMUP; ++i) {
 		world.Step(1.0f/60.0f, 3, 3);
-  }
+      }
+    }
 
-	clock_t times[FRAMES]; 
-	for (int32 i = 0; i < FRAMES; ++i) {
+	clock_t times[FRAMES];
+
+    int32 frameCount = b2Params::frame1 ? 1 : (b2Params::frame10 ? 10 : FRAMES);
+	for (int32 i = 0; i < frameCount; ++i) {
 		clock_t start = clock();
 		world.Step(1.0f/60.0f, 3, 3);
 		clock_t end = clock();
 		times[i] = end - start;
-#if DEBUG
-    printf("%f :: ", topBody->GetPosition().y);
-		printf("%f\n", (float32)(end - start) / CLOCKS_PER_SEC * 1000);
-#endif
+        if (b2Params::debug) {
+            printf("%f :: ", topBody->GetPosition().y);
+		    printf("%f\n", (float32)(end - start) / CLOCKS_PER_SEC * 1000);
+        }
 	}
 
   b2Counters::dump();
+  b2Cycles::dump();
   return measure(times);
 }
