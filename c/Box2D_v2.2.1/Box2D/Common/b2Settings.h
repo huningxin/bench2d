@@ -158,7 +158,7 @@ public:
   static bool debug;
   static bool frame1;
   static bool frame10;
-  static bool sortPos;
+  static bool sortCon;
 };
 
 /// Counters
@@ -171,8 +171,7 @@ public:
   static int pointCount1;
   static int pointCount2;
   static int pointCountOther;
-  static int indexAOverlap;
-  static int indexBOverlap;
+  static int indexOverlap;
   static int noIndexOverlap;
   static int minSeparationOk;
   static void dump();

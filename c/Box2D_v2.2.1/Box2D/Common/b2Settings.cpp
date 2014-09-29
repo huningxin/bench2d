@@ -52,7 +52,7 @@ bool b2Params::testOut = false;
 bool b2Params::debug   = false;
 bool b2Params::frame1  = false;
 bool b2Params::frame10 = false;
-bool b2Params::sortPos = false;
+bool b2Params::sortCon = false;
 
 
 void b2Params::init(int argc, char **argv) {
@@ -83,8 +83,8 @@ void b2Params::init(int argc, char **argv) {
       frame10 = true;
       frame1  = false;
     }
-    if (strcmp(argv[i], "sortPos") == 0) {
-      sortPos = true;
+    if (strcmp(argv[i], "sortCon") == 0) {
+      sortCon = true;
     }
   }
 }
@@ -95,8 +95,7 @@ int b2Counters::pointCountsNotEqual      = 0;
 int b2Counters::pointCount1              = 0;
 int b2Counters::pointCount2              = 0;
 int b2Counters::pointCountOther          = 0;
-int b2Counters::indexAOverlap            = 0;
-int b2Counters::indexBOverlap            = 0;
+int b2Counters::indexOverlap             = 0;
 int b2Counters::noIndexOverlap           = 0;
 int b2Counters::minSeparationOk          = 0;
 
@@ -106,8 +105,7 @@ void b2Counters::dump() {
     b2Log("pointCountsNotEqual:      %d\n", pointCountsNotEqual);
     b2Log("pointCount1:              %d\n", pointCount1);
     b2Log("pointCount2:              %d\n", pointCount2);
-    b2Log("indexAOverlap:            %d\n", indexAOverlap);
-    b2Log("indexBOverlap:            %d\n", indexBOverlap);
+    b2Log("indexOverlap:             %d\n", indexOverlap);
     b2Log("noIndexOverlap:           %d\n", noIndexOverlap);
     b2Log("minSeparationOk:          %d\n", minSeparationOk);
 }
@@ -134,14 +132,3 @@ void b2Cycles::dump() {
 }
 
 b2Cycles::cycleData b2Cycles::m_cycles[b2Cycles::m_maxCycles];
-
-/*
-private:
-  static const maxCycles = 100;
-  static struct {
-    char             *cycleName;
-    unsigned __int64  start;
-    unsigned __int64  total;
-  }[maxCycles] cycles;
-};
-*/

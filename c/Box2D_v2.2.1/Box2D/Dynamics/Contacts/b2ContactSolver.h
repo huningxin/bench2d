@@ -94,11 +94,13 @@ public:
 	int m_count;
 private:
   float32 SolveHelper(int32 StartIndex, int32 count);
-  bool    IsUnique(int32 index1, int32 index2, int32 *sorted);
+  bool    IsUnique(int32 first, int32 last, int32 check, int32 *sorted);
   bool    Find4Uniques(int32 index, int32 *sorted);
   void    Swap(int32 index1, int32 index2);
   void    Dump4Sorted(int32 index, int32 *sorted);
   void    Dump4(int32 index);
+  void    DumpPos4(int32 index);
+  static bool    IndexOverlap(int32 indexA[4], int32 indexB[4]);
 };
 
 #endif
