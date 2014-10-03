@@ -61,8 +61,10 @@ result_t bench(int argc, char **argv) {
 
 	{
 		float32 a = 0.5f;
-		b2PolygonShape shape;
-		shape.SetAsBox(a, a);
+//		b2PolygonShape shape;
+//		shape.SetAsBox(a, a);
+		b2CircleShape shape;
+		shape.m_radius = a;
 
 		b2Vec2 x(-7.0f, 0.75f);
 		b2Vec2 y;

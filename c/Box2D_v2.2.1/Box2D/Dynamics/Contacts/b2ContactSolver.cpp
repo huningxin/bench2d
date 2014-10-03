@@ -705,18 +705,19 @@ float32 b2ContactSolver::SimdSolvePositionConstraints()
         }
         b2Vec2 localCenterA[4] = {pc->localCenterA, (pc+1)->localCenterA,
                                   (pc+2)->localCenterA, (pc+3)->localCenterA};
-        float32 mA[4] = {pc->invMassA, (pc+1)->invMassA, (pc+2)->invMassA, (pc+3)->invMassA};
-        float32 iA[4] = {pc->invIA, (pc+1)->invIA, (pc+2)->invIA, (pc+3)->invIA};
         b2Vec2 localCenterB[4] = {pc->localCenterB, (pc+1)->localCenterB,
                                  (pc+2)->localCenterB, (pc+3)->localCenterB};
-        float32 mB[4] = {pc->invMassB, (pc+1)->invMassB, (pc+2)->invMassB, (pc+3)->invMassB};
-        float32 iB[4] = {pc->invIB, (pc+1)->invIB, (pc+2)->invIB, (pc+3)->invIB};
         int32 pointCount[4] = {pc->pointCount, (pc+1)->pointCount, (pc+2)->pointCount, (pc+3)->pointCount};
 
         b2Vec2  cA[4];
 		float32 aA[4];
 		b2Vec2  cB[4];
 		float32 aB[4];
+
+        float32 mA[4] = {pc->invMassA, (pc+1)->invMassA, (pc+2)->invMassA, (pc+3)->invMassA};
+        float32 iA[4] = {pc->invIA, (pc+1)->invIA, (pc+2)->invIA, (pc+3)->invIA};
+        float32 mB[4] = {pc->invMassB, (pc+1)->invMassB, (pc+2)->invMassB, (pc+3)->invMassB};
+        float32 iB[4] = {pc->invIB, (pc+1)->invIB, (pc+2)->invIB, (pc+3)->invIB};
 
 		// Solve normal constraints
         // if all 4 have the same point count we're good, otherwise they'll have to be done
@@ -746,6 +747,16 @@ float32 b2ContactSolver::SimdSolvePositionConstraints()
             aB[2] = m_positions[indexB[2]].a;
             aB[3] = m_positions[indexB[3]].a;
 
+            __m128 cAx4 = _mm_set_ps(cA[3].x, cA[2].x, cA[1].x, cA[0].x);
+            __m128 cAy4 = _mm_set_ps(cA[3].y, cA[2].y, cA[1].y, cA[0].y);
+            __m128 cBx4 = _mm_set_ps(cB[3].x, cB[2].x, cB[1].x, cB[0].x);
+            __m128 cBy4 = _mm_set_ps(cB[3].y, cB[2].y, cB[1].y, cB[0].y);
+
+            __m128 mA4 = _mm_loadu_ps(mA);
+            __m128 mB4 = _mm_loadu_ps(mB);
+            __m128 iA4 = _mm_loadu_ps(iA);
+            __m128 iB4 = _mm_loadu_ps(iB);
+
                 b2Transform xfA[4], xfB[4];
 			    xfA[0].q.Set(aA[0]);
 			    xfA[1].q.Set(aA[1]);
@@ -773,29 +784,37 @@ float32 b2ContactSolver::SimdSolvePositionConstraints()
 			    psm[2].Initialize(pc+2, xfA[2], xfB[2], 0);
 			    psm[3].Initialize(pc+3, xfA[3], xfB[3], 0);
 
-                b2Vec2 normal[4] = {psm[0].normal,
-                                    psm[1].normal,
-                                    psm[2].normal,
-                                    psm[3].normal};
+//                b2Vec2 normal[4] = {psm[0].normal,
+//                                    psm[1].normal,
+//                                    psm[2].normal,
+//                                    psm[3].normal};
+                __m128 normalx4   = _mm_set_ps(psm[3].normal.x, psm[2].normal.x, psm[1].normal.x, psm[0].normal.x);
+                __m128 normaly4   = _mm_set_ps(psm[3].normal.y, psm[2].normal.y, psm[1].normal.y, psm[0].normal.y);
 
-                b2Vec2  point[4] = {psm[0].point,
-                                    psm[1].point,
-                                    psm[2].point,
-                                    psm[3].point};
+//                b2Vec2  point[4] = {psm[0].point,
+//                                    psm[1].point,
+//                                    psm[2].point,
+//                                    psm[3].point};
+                __m128 pointx4 = _mm_set_ps(psm[3].point.x, psm[2].point.x, psm[1].point.x, psm[0].point.x);
+                __m128 pointy4 = _mm_set_ps(psm[3].point.y, psm[2].point.y, psm[1].point.y, psm[0].point.y);
 
 			    float32 separation[4] = {psm[0].separation,
                                          psm[1].separation,
                                          psm[2].separation,
                                          psm[3].separation};
 
-                b2Vec2 rA[4] = {point[0] - cA[0],
-                                point[1] - cA[1],
-                                point[2] - cA[2],
-                                point[3] - cA[3]};
-                b2Vec2 rB[4] = {point[0] - cB[0],
-                                point[1] - cB[1],
-                                point[2] - cB[2],
-                                point[3] - cB[3]};
+//                b2Vec2 rA[4] = {point[0] - cA[0],
+//                                point[1] - cA[1],
+//                                point[2] - cA[2],
+//                                point[3] - cA[3]};
+//                b2Vec2 rB[4] = {point[0] - cB[0],
+//                                point[1] - cB[1],
+//                                point[2] - cB[2],
+//                                point[3] - cB[3]};
+                __m128 rAx4 = _mm_sub_ps(pointx4, cAx4);
+                __m128 rAy4 = _mm_sub_ps(pointy4, cAy4);
+                __m128 rBx4 = _mm_sub_ps(pointx4, cBx4);
+                __m128 rBy4 = _mm_sub_ps(pointy4, cBy4);
 
 			    // Track max constraint error.
 			    minSeparation = b2Min(minSeparation, separation[0]);
@@ -811,69 +830,120 @@ float32 b2ContactSolver::SimdSolvePositionConstraints()
                   b2Clamp(b2_baumgarte * (separation[3] + b2_linearSlop), -b2_maxLinearCorrection, 0.0f)};
 
 			    // Compute the effective mass.
-			    float32 rnA[4] = {b2Cross(rA[0], normal[0]),
-                                  b2Cross(rA[1], normal[1]),
-                                  b2Cross(rA[2], normal[2]),
-                                  b2Cross(rA[3], normal[3])};
-			    float32 rnB[4] = {b2Cross(rB[0], normal[0]),
-                                  b2Cross(rB[1], normal[1]),
-                                  b2Cross(rB[2], normal[2]),
-                                  b2Cross(rB[3], normal[3])};
-			    float32 K[4] = {mA[0] + mB[0] + iA[0] * rnA[0] * rnA[0] + iB[0] * rnB[0] * rnB[0],
-                                mA[1] + mB[1] + iA[1] * rnA[1] * rnA[1] + iB[1] * rnB[1] * rnB[1],
-                                mA[2] + mB[2] + iA[2] * rnA[2] * rnA[2] + iB[2] * rnB[2] * rnB[2],
-                                mA[3] + mB[3] + iA[3] * rnA[3] * rnA[3] + iB[3] * rnB[3] * rnB[3]};
+//  			    float32 rnA[4] = {b2Cross(rA[0], normal[0]),
+//                                  b2Cross(rA[1], normal[1]),
+//                                  b2Cross(rA[2], normal[2]),
+//                                  b2Cross(rA[3], normal[3])};
+//			    float32 rnB[4] = {b2Cross(rB[0], normal[0]),
+//                                  b2Cross(rB[1], normal[1]),
+//                                  b2Cross(rB[2], normal[2]),
+//                                  b2Cross(rB[3], normal[3])};
+			    //float32 K[4] = {mA[0] + mB[0] + (iA[0] * rnA[0] * rnA[0]) + (iB[0] * rnB[0] * rnB[0]),
+                //                mA[1] + mB[1] + iA[1] * rnA[1] * rnA[1] + iB[1] * rnB[1] * rnB[1],
+                //                mA[2] + mB[2] + iA[2] * rnA[2] * rnA[2] + iB[2] * rnB[2] * rnB[2],
+                //                mA[3] + mB[3] + iA[3] * rnA[3] * rnA[3] + iB[3] * rnB[3] * rnB[3]};
+                __m128 rnA4 = b2Cross4(rAx4, rAy4, normalx4, normaly4);
+                __m128 rnB4 = b2Cross4(rBx4, rBy4, normalx4, normaly4);
+                __m128 K4 = _mm_add_ps(
+                              mA4,
+                              _mm_add_ps(
+                                mB4,
+                                _mm_add_ps(
+                                  _mm_mul_ps(
+                                    iA4,
+                                    _mm_mul_ps(rnA4, rnA4)),
+                                  _mm_mul_ps(
+                                    iB4,
+                                    _mm_mul_ps(rnB4, rnB4)))));
 
 			    // Compute normal impulse
+                float32 K[4];
+                _mm_storeu_ps(K, K4);
 			    float32 impulse[4] = {K[0] > 0.0f ? - C [0]/ K[0] : 0.0f,
                                       K[1] > 0.0f ? - C [1]/ K[1] : 0.0f,
                                       K[2] > 0.0f ? - C [2]/ K[2] : 0.0f,
                                       K[3] > 0.0f ? - C [3]/ K[3] : 0.0f};
+                __m128 impulse4 = _mm_loadu_ps(impulse);
 
-			    b2Vec2 P[4] = {impulse[0] * normal[0],
-                               impulse[1] * normal[1],
-                               impulse[2] * normal[2],
-                               impulse[3] * normal[3]};
+//			    b2Vec2 P[4] = {impulse[0] * normal[0],
+//                             impulse[1] * normal[1],
+//                             impulse[2] * normal[2],
+//                             impulse[3] * normal[3]};
+                __m128 Px4 = _mm_mul_ps(impulse4, normalx4);
+                __m128 Py4 = _mm_mul_ps(impulse4, normaly4);
 
-			    cA[0] -= mA[0] * P[0];
-			    cA[1] -= mA[1] * P[1];
-			    cA[2] -= mA[2] * P[2];
-			    cA[3] -= mA[3] * P[3];
+//			    cA[0] -= mA[0] * P[0];
+//			    cA[1] -= mA[1] * P[1];
+//			    cA[2] -= mA[2] * P[2];
+//			    cA[3] -= mA[3] * P[3];
+                cAx4 = _mm_sub_ps(cAx4, _mm_mul_ps(mA4, Px4));
+                cAy4 = _mm_sub_ps(cAy4, _mm_mul_ps(mA4, Py4));
 
-                aA[0] -= iA[0] * b2Cross(rA[0], P[0]);
-                aA[1] -= iA[1] * b2Cross(rA[1], P[1]);
-                aA[2] -= iA[2] * b2Cross(rA[2], P[2]);
-                aA[3] -= iA[3] * b2Cross(rA[3], P[3]);
+//                aA[0] -= iA[0] * b2Cross(rA[0], P[0]);
+//                aA[1] -= iA[1] * b2Cross(rA[1], P[1]);
+//                aA[2] -= iA[2] * b2Cross(rA[2], P[2]);
+//                aA[3] -= iA[3] * b2Cross(rA[3], P[3]);
+                __m128 aA4 = _mm_loadu_ps(aA);
+                aA4 = _mm_sub_ps(aA4, _mm_mul_ps(iA4, b2Cross4(rAx4, rAy4, Px4, Py4)));
 
-			    cB[0] += mB[0] * P[0];
-			    cB[1] += mB[1] * P[1];
-			    cB[2] += mB[2] * P[2];
-			    cB[3] += mB[3] * P[3];
+//			    cB[0] += mB[0] * P[0];
+//			    cB[1] += mB[1] * P[1];
+//			    cB[2] += mB[2] * P[2];
+//			    cB[3] += mB[3] * P[3];
+                cBx4 = _mm_add_ps(cBx4, _mm_mul_ps(mB4, Px4));
+                cBy4 = _mm_add_ps(cBy4, _mm_mul_ps(mB4, Py4));
 
-                aB[0] += iB[0] * b2Cross(rB[0], P[0]);
-                aB[1] += iB[1] * b2Cross(rB[1], P[1]);
-                aB[2] += iB[2] * b2Cross(rB[2], P[2]);
-                aB[3] += iB[3] * b2Cross(rB[3], P[3]);
+//                aB[0] += iB[0] * b2Cross(rB[0], P[0]);
+//                aB[1] += iB[1] * b2Cross(rB[1], P[1]);
+//                aB[2] += iB[2] * b2Cross(rB[2], P[2]);
+//                aB[3] += iB[3] * b2Cross(rB[3], P[3]);
+                __m128 aB4 = _mm_loadu_ps(aB);
+                aB4 = _mm_add_ps(aB4, _mm_mul_ps(iB4, b2Cross4(rBx4, rBy4, Px4, Py4)));
 
-                m_positions[indexA[0]].c = cA[0];
-                m_positions[indexA[1]].c = cA[1];
-                m_positions[indexA[2]].c = cA[2];
-                m_positions[indexA[3]].c = cA[3];
+//                m_positions[indexA[0]].c = cA[0];
+//                m_positions[indexA[1]].c = cA[1];
+//                m_positions[indexA[2]].c = cA[2];
+//                m_positions[indexA[3]].c = cA[3];
+                m_positions[indexA[0]].c.x = cAx4.m128_f32[0];
+                m_positions[indexA[1]].c.x = cAx4.m128_f32[1];
+                m_positions[indexA[2]].c.x = cAx4.m128_f32[2];
+                m_positions[indexA[3]].c.x = cAx4.m128_f32[3];
+                m_positions[indexA[0]].c.y = cAy4.m128_f32[0];
+                m_positions[indexA[1]].c.y = cAy4.m128_f32[1];
+                m_positions[indexA[2]].c.y = cAy4.m128_f32[2];
+                m_positions[indexA[3]].c.y = cAy4.m128_f32[3];
 
-                m_positions[indexA[0]].a = aA[0];
-                m_positions[indexA[1]].a = aA[1];
-                m_positions[indexA[2]].a = aA[2];
-                m_positions[indexA[3]].a = aA[3];
 
-                m_positions[indexB[0]].c = cB[0];
-                m_positions[indexB[1]].c = cB[1];
-                m_positions[indexB[2]].c = cB[2];
-                m_positions[indexB[3]].c = cB[3];
+//                m_positions[indexA[0]].a = aA[0];
+//                m_positions[indexA[1]].a = aA[1];
+//                m_positions[indexA[2]].a = aA[2];
+//                m_positions[indexA[3]].a = aA[3];
+                m_positions[indexA[0]].a = aA4.m128_f32[0];
+                m_positions[indexA[1]].a = aA4.m128_f32[1];
+                m_positions[indexA[2]].a = aA4.m128_f32[2];
+                m_positions[indexA[3]].a = aA4.m128_f32[3];
 
-                m_positions[indexB[0]].a = aB[0];
-                m_positions[indexB[1]].a = aB[1];
-                m_positions[indexB[2]].a = aB[2];
-                m_positions[indexB[3]].a = aB[3];
+//                m_positions[indexB[0]].c = cB[0];
+//                m_positions[indexB[1]].c = cB[1];
+//                m_positions[indexB[2]].c = cB[2];
+//                m_positions[indexB[3]].c = cB[3];
+                m_positions[indexB[0]].c.x = cBx4.m128_f32[0];
+                m_positions[indexB[1]].c.x = cBx4.m128_f32[1];
+                m_positions[indexB[2]].c.x = cBx4.m128_f32[2];
+                m_positions[indexB[3]].c.x = cBx4.m128_f32[3];
+                m_positions[indexB[0]].c.y = cBy4.m128_f32[0];
+                m_positions[indexB[1]].c.y = cBy4.m128_f32[1];
+                m_positions[indexB[2]].c.y = cBy4.m128_f32[2];
+                m_positions[indexB[3]].c.y = cBy4.m128_f32[3];
+
+//                m_positions[indexB[0]].a = aB[0];
+//                m_positions[indexB[1]].a = aB[1];
+//                m_positions[indexB[2]].a = aB[2];
+//                m_positions[indexB[3]].a = aB[3];
+                m_positions[indexB[0]].a = aB4.m128_f32[0];
+                m_positions[indexB[1]].a = aB4.m128_f32[1];
+                m_positions[indexB[2]].a = aB4.m128_f32[2];
+                m_positions[indexB[3]].a = aB4.m128_f32[3];
           }
           else {
             for (int32 i4 = 0; i4 < 4; ++i4) {

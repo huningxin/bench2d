@@ -25,6 +25,7 @@
 #include <cfloat>
 #include <cstddef>
 #include <limits>
+#include <xmmintrin.h>
 
 /// This function is used to ensure that a floating point number is
 /// not a NaN or infinity.
@@ -423,6 +424,11 @@ inline float32 b2Dot(const b2Vec2& a, const b2Vec2& b)
 inline float32 b2Cross(const b2Vec2& a, const b2Vec2& b)
 {
 	return a.x * b.y - a.y * b.x;
+}
+
+inline __m128 b2Cross4(const __m128 &ax4, const __m128 &ay4, const __m128 &bx4, const __m128 &by4)
+{
+   return _mm_sub_ps(_mm_mul_ps(ax4, by4), _mm_mul_ps(ay4, bx4));
 }
 
 /// Perform the cross product on a vector and a scalar. In 2D this produces
