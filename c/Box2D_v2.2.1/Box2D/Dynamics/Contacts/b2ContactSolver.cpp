@@ -686,6 +686,11 @@ bool b2ContactSolver::IndexOverlap(int32 indexA[4], int32 indexB[4]) {
 float32 b2ContactSolver::SimdSolvePositionConstraints()
 {
 	float32 minSeparation = 0.0f;
+    __m128 b2_baumgarte4               = _mm_set_ps(b2_baumgarte, b2_baumgarte, b2_baumgarte, b2_baumgarte);
+    __m128 b2_linearSlop4              = _mm_set_ps(b2_linearSlop, b2_linearSlop, b2_linearSlop, b2_linearSlop);
+    __m128 neg_b2_maxLinearCorrection4 = _mm_set_ps(-b2_maxLinearCorrection, -b2_maxLinearCorrection, -b2_maxLinearCorrection, -b2_maxLinearCorrection);
+    __m128 zero4                       = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
+    __m128 signMask4                   = _mm_castsi128_ps(_mm_set_epi32(0x80000000, 0x80000000, 0x80000000, 0x80000000));
 
 	for (int32 i = 0; i < (m_count-3); i+=4)
 	{
@@ -772,6 +777,8 @@ float32 b2ContactSolver::SimdSolvePositionConstraints()
 			    xfB[2].p = cB[2] - b2Mul(xfB[2].q, localCenterB[2]);
 			    xfB[3].p = cB[3] - b2Mul(xfB[3].q, localCenterB[3]);
 
+                b2Transform4 xfA4, xfB4;
+
 			    b2PositionSolverManifold psm[4];
 			    psm[0].Initialize(pc+0, xfA[0], xfB[0], 0);
 			    psm[1].Initialize(pc+1, xfA[1], xfB[1], 0);
@@ -784,10 +791,7 @@ float32 b2ContactSolver::SimdSolvePositionConstraints()
                 __m128 pointx4 = _mm_set_ps(psm[3].point.x, psm[2].point.x, psm[1].point.x, psm[0].point.x);
                 __m128 pointy4 = _mm_set_ps(psm[3].point.y, psm[2].point.y, psm[1].point.y, psm[0].point.y);
 
-			    float32 separation[4] = {psm[0].separation,
-                                         psm[1].separation,
-                                         psm[2].separation,
-                                         psm[3].separation};
+                __m128 separation4 = _mm_set_ps(psm[3].separation, psm[2].separation, psm[1].separation, psm[0].separation);
 
                 __m128 rAx4 = _mm_sub_ps(pointx4, cAx4);
                 __m128 rAy4 = _mm_sub_ps(pointy4, cAy4);
@@ -795,17 +799,14 @@ float32 b2ContactSolver::SimdSolvePositionConstraints()
                 __m128 rBy4 = _mm_sub_ps(pointy4, cBy4);
 
 			    // Track max constraint error.
-			    minSeparation = b2Min(minSeparation, separation[0]);
-			    minSeparation = b2Min(minSeparation, separation[1]);
-			    minSeparation = b2Min(minSeparation, separation[2]);
-			    minSeparation = b2Min(minSeparation, separation[3]);
+			    minSeparation = b2Min(minSeparation, separation4.m128_f32[0]);
+			    minSeparation = b2Min(minSeparation, separation4.m128_f32[1]);
+			    minSeparation = b2Min(minSeparation, separation4.m128_f32[2]);
+			    minSeparation = b2Min(minSeparation, separation4.m128_f32[3]);
 
 			    // Prevent large corrections and allow slop.
-			    float32 C[4] = {
-                  b2Clamp(b2_baumgarte * (separation[0] + b2_linearSlop), -b2_maxLinearCorrection, 0.0f),
-                  b2Clamp(b2_baumgarte * (separation[1] + b2_linearSlop), -b2_maxLinearCorrection, 0.0f),
-                  b2Clamp(b2_baumgarte * (separation[2] + b2_linearSlop), -b2_maxLinearCorrection, 0.0f),
-                  b2Clamp(b2_baumgarte * (separation[3] + b2_linearSlop), -b2_maxLinearCorrection, 0.0f)};
+                __m128 C4 = b2Clamp4(_mm_mul_ps(b2_baumgarte4, _mm_add_ps(separation4, b2_linearSlop4)),
+                                     neg_b2_maxLinearCorrection4, zero4);
 
 			    // Compute the effective mass.
                 __m128 rnA4 = b2Cross4(rAx4, rAy4, normalx4, normaly4);
@@ -823,13 +824,9 @@ float32 b2ContactSolver::SimdSolvePositionConstraints()
                                     _mm_mul_ps(rnB4, rnB4)))));
 
 			    // Compute normal impulse
-                float32 K[4];
-                _mm_storeu_ps(K, K4);
-			    float32 impulse[4] = {K[0] > 0.0f ? - C [0]/ K[0] : 0.0f,
-                                      K[1] > 0.0f ? - C [1]/ K[1] : 0.0f,
-                                      K[2] > 0.0f ? - C [2]/ K[2] : 0.0f,
-                                      K[3] > 0.0f ? - C [3]/ K[3] : 0.0f};
-                __m128 impulse4 = _mm_loadu_ps(impulse);
+                __m128 cmpgt    = _mm_cmpgt_ps(K4, zero4);
+                __m128 negdiv4  = _mm_xor_ps(signMask4, _mm_div_ps(C4, K4));
+                __m128 impulse4 = _mm_or_ps(_mm_and_ps(cmpgt, negdiv4), _mm_andnot_ps(cmpgt, zero4));
                 __m128 Px4 = _mm_mul_ps(impulse4, normalx4);
                 __m128 Py4 = _mm_mul_ps(impulse4, normaly4);
 

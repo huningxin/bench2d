@@ -385,6 +385,42 @@ struct b2Transform
 	b2Rot q;
 };
 
+struct b2Transform4
+{
+	/// The default constructor does nothing.
+	b2Transform4() {}
+
+	/// Initialize using a position vector and a rotation.
+	//b2Transform(const b2Vec2& position, const b2Rot& rotation) : p(position), q(rotation) {}
+
+	/// Set this to the identity transform.
+	//void SetIdentity()
+	//{
+	//	p.SetZero();
+	//	q.SetIdentity();
+	//}
+
+	/// Set this based on the position and angle.
+	void Set(const __m128& posx4, const __m128& posy4, __m128& angle4)
+	{
+		px4 = posx4;
+        py4 = posy4;
+		qs4.m128_f32[0] = sinf(angle4.m128_f32[0]);
+		qs4.m128_f32[1] = sinf(angle4.m128_f32[1]);
+		qs4.m128_f32[2] = sinf(angle4.m128_f32[2]);
+		qs4.m128_f32[3] = sinf(angle4.m128_f32[3]);
+		qc4.m128_f32[0] = cosf(angle4.m128_f32[0]);
+		qc4.m128_f32[1] = cosf(angle4.m128_f32[1]);
+		qc4.m128_f32[2] = cosf(angle4.m128_f32[2]);
+		qc4.m128_f32[3] = cosf(angle4.m128_f32[3]);
+	}
+
+	__m128 px4;
+    __m128 py4;
+	__m128 qs4;
+    __m128 qc4;
+};
+
 /// This describes the motion of a body/shape for TOI computation.
 /// Shapes are defined with respect to the body origin, which may
 /// no coincide with the center of mass. However, to support dynamics
@@ -585,6 +621,16 @@ inline b2Vec2 b2Mul(const b2Rot& q, const b2Vec2& v)
 	return b2Vec2(q.c * v.x - q.s * v.y, q.s * v.x + q.c * v.y);
 }
 
+inline __m128 b2Mulx4(const __m128& qs4, const __m128& qc4, const __m128& vx4, const __m128& vy4)
+{
+    return _mm_sub_ps(_mm_mul_ps(qc4, vx4), _mm_mul_ps(qs4, vy4));
+}
+
+inline __m128 b2Muly4(const __m128& qs4, const __m128& qc4, const __m128& vx4, const __m128& vy4)
+{
+    return _mm_add_ps(_mm_mul_ps(qs4, vx4), _mm_mul_ps(qc4, vy4));
+}
+
 /// Inverse rotate a vector
 inline b2Vec2 b2MulT(const b2Rot& q, const b2Vec2& v)
 {
@@ -671,6 +717,11 @@ template <typename T>
 inline T b2Clamp(T a, T low, T high)
 {
 	return b2Max(low, b2Min(a, high));
+}
+
+inline __m128 b2Clamp4(__m128 a, __m128 low, __m128 high)
+{
+    return _mm_max_ps(low, _mm_min_ps(a, high));
 }
 
 inline b2Vec2 b2Clamp(const b2Vec2& a, const b2Vec2& low, const b2Vec2& high)
