@@ -669,6 +669,62 @@ struct b2PositionSolverManifold
 	float32 separation;
 };
 
+struct b2PositionSolverManifold4
+{
+	void Initialize(b2ContactPositionConstraint* pc, const b2Transform4& xfA4, const b2Transform4& xfB4, int32 index)
+	{
+        // assume it's all circles
+        __m128 localPointAx4 = _mm_set_ps((pc+3)->localPoint.x,     (pc+2)->localPoint.x,     (pc+1)->localPoint.x,     pc->localPoint.x);
+        __m128 localPointAy4 = _mm_set_ps((pc+3)->localPoint.y,     (pc+2)->localPoint.y,     (pc+1)->localPoint.y,     pc->localPoint.y);
+        __m128 localPointBx4 = _mm_set_ps((pc+3)->localPoints[0].x, (pc+2)->localPoints[0].x, (pc+1)->localPoints[0].x, pc->localPoints[0].x);
+        __m128 localPointBy4 = _mm_set_ps((pc+3)->localPoints[0].y, (pc+2)->localPoints[0].y, (pc+1)->localPoints[0].y, pc->localPoints[0].y);
+        __m128 radiusA4      = _mm_set_ps((pc+3)->radiusA,          (pc+2)->radiusA,          (pc+1)->radiusA,          pc->radiusA);
+        __m128 radiusB4      = _mm_set_ps((pc+3)->radiusB,          (pc+2)->radiusB,          (pc+1)->radiusB,          pc->radiusB);
+        __m128 pointAx4 = b2Mulx4(xfA4, localPointAx4, localPointAy4);
+        __m128 pointAy4 = b2Muly4(xfA4, localPointAx4, localPointAy4);
+        __m128 pointBx4 = b2Mulx4(xfB4, localPointBx4, localPointBy4);
+        __m128 pointBy4 = b2Muly4(xfB4, localPointBx4, localPointBy4);
+        normalx4 = _mm_sub_ps(pointBx4, pointAx4);
+        normaly4 = _mm_sub_ps(pointBy4, pointAy4);
+        b2Normalize4(normalx4, normaly4);
+        pointx4 = _mm_mul_ps(_mm_set_ps1(0.5f), _mm_add_ps(pointAx4, pointBx4));
+        pointy4 = _mm_mul_ps(_mm_set_ps1(0.5f), _mm_add_ps(pointAy4, pointBy4));
+        __m128 dot4 = b2Dot4(_mm_sub_ps(pointBx4, pointAx4), _mm_sub_ps(pointBy4, pointAy4), normalx4, normaly4);
+        separation4 = _mm_sub_ps(_mm_sub_ps(dot4, radiusA4), radiusB4);
+
+        // if one or more of the 4 constraints involves non circles they need to be computed individually
+        {
+          b2Cycles cycles(3, "Fixing up position solver manifolds");
+          for (int32 i = 0; i < 4; ++i) {
+            if ((pc+i)->type != b2Manifold::e_circles) {
+              b2PositionSolverManifold psm;
+              b2Transform xfA, xfB;
+              xfA.p.x = xfA4.px4.m128_f32[i];
+              xfA.p.y = xfA4.py4.m128_f32[i];
+              xfA.q.s = xfA4.qs4.m128_f32[i];
+              xfA.q.c = xfA4.qc4.m128_f32[i];
+              xfB.p.x = xfB4.px4.m128_f32[i];
+              xfB.p.y = xfB4.py4.m128_f32[i];
+              xfB.q.s = xfB4.qs4.m128_f32[i];
+              xfB.q.c = xfB4.qc4.m128_f32[i];
+              psm.Initialize(pc+i, xfA, xfB, index);
+              normalx4.m128_f32[i]    = psm.normal.x;
+              normaly4.m128_f32[i]    = psm.normal.y;
+              pointx4.m128_f32[i]     = psm.point.x;
+              pointy4.m128_f32[i]     = psm.point.y;
+              separation4.m128_f32[i] = psm.separation;
+            }
+          }
+        }
+    }
+
+	__m128 normalx4;
+    __m128 normaly4;
+    __m128 pointx4;
+    __m128 pointy4;
+    __m128 separation4;
+};
+
 bool b2ContactSolver::IndexOverlap(int32 indexA[4], int32 indexB[4]) {
   int32 values[8] = {indexA[0], indexA[1], indexA[2], indexA[3],
                      indexB[0], indexB[1], indexB[2], indexB[3]};
@@ -686,10 +742,10 @@ bool b2ContactSolver::IndexOverlap(int32 indexA[4], int32 indexB[4]) {
 float32 b2ContactSolver::SimdSolvePositionConstraints()
 {
 	float32 minSeparation = 0.0f;
-    __m128 b2_baumgarte4               = _mm_set_ps(b2_baumgarte, b2_baumgarte, b2_baumgarte, b2_baumgarte);
-    __m128 b2_linearSlop4              = _mm_set_ps(b2_linearSlop, b2_linearSlop, b2_linearSlop, b2_linearSlop);
-    __m128 neg_b2_maxLinearCorrection4 = _mm_set_ps(-b2_maxLinearCorrection, -b2_maxLinearCorrection, -b2_maxLinearCorrection, -b2_maxLinearCorrection);
-    __m128 zero4                       = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
+    __m128 b2_baumgarte4               = _mm_set_ps1(b2_baumgarte);
+    __m128 b2_linearSlop4              = _mm_set_ps1(b2_linearSlop);
+    __m128 neg_b2_maxLinearCorrection4 = _mm_set_ps1(-b2_maxLinearCorrection);
+    __m128 zero4                       = _mm_set_ps1(0.0f);
     __m128 signMask4                   = _mm_castsi128_ps(_mm_set_epi32(0x80000000, 0x80000000, 0x80000000, 0x80000000));
 
 	for (int32 i = 0; i < (m_count-3); i+=4)
@@ -746,52 +802,38 @@ float32 b2ContactSolver::SimdSolvePositionConstraints()
             __m128 aA4 = _mm_set_ps(m_positions[indexA[3]].a, m_positions[indexA[2]].a, m_positions[indexA[1]].a, m_positions[indexA[0]].a);
             __m128 aB4 = _mm_set_ps(m_positions[indexB[3]].a, m_positions[indexB[2]].a, m_positions[indexB[1]].a, m_positions[indexB[0]].a);
 
-            __m128 cAx4 = _mm_set_ps(cA[3].x, cA[2].x, cA[1].x, cA[0].x);
-            __m128 cAy4 = _mm_set_ps(cA[3].y, cA[2].y, cA[1].y, cA[0].y);
-            __m128 cBx4 = _mm_set_ps(cB[3].x, cB[2].x, cB[1].x, cB[0].x);
-            __m128 cBy4 = _mm_set_ps(cB[3].y, cB[2].y, cB[1].y, cB[0].y);
+            __m128 cAx4           = _mm_set_ps(cA[3].x, cA[2].x, cA[1].x, cA[0].x);
+            __m128 cAy4           = _mm_set_ps(cA[3].y, cA[2].y, cA[1].y, cA[0].y);
+            __m128 cBx4           = _mm_set_ps(cB[3].x, cB[2].x, cB[1].x, cB[0].x);
+            __m128 cBy4           = _mm_set_ps(cB[3].y, cB[2].y, cB[1].y, cB[0].y);
+            __m128 localCenterAx4 = _mm_set_ps(localCenterA[3].x, localCenterA[2].x, localCenterA[1].x,localCenterA[0].x);
+            __m128 localCenterAy4 = _mm_set_ps(localCenterA[3].y, localCenterA[2].y, localCenterA[1].y,localCenterA[0].y);
+            __m128 localCenterBx4 = _mm_set_ps(localCenterB[3].x, localCenterB[2].x, localCenterB[1].x,localCenterB[0].x);
+            __m128 localCenterBy4 = _mm_set_ps(localCenterB[3].y, localCenterB[2].y, localCenterB[1].y,localCenterB[0].y);
 
             __m128 mA4 = _mm_loadu_ps(mA);
             __m128 mB4 = _mm_loadu_ps(mB);
             __m128 iA4 = _mm_loadu_ps(iA);
             __m128 iB4 = _mm_loadu_ps(iB);
 
-                b2Transform xfA[4], xfB[4];
-			    xfA[0].q.Set(aA4.m128_f32[0]);
-			    xfA[1].q.Set(aA4.m128_f32[1]);
-			    xfA[2].q.Set(aA4.m128_f32[2]);
-			    xfA[3].q.Set(aA4.m128_f32[3]);
-
-                xfB[0].q.Set(aB4.m128_f32[0]);
-                xfB[1].q.Set(aB4.m128_f32[1]);
-                xfB[2].q.Set(aB4.m128_f32[2]);
-                xfB[3].q.Set(aB4.m128_f32[3]);
-
-			    xfA[0].p = cA[0] - b2Mul(xfA[0].q, localCenterA[0]);
-			    xfA[1].p = cA[1] - b2Mul(xfA[1].q, localCenterA[1]);
-			    xfA[2].p = cA[2] - b2Mul(xfA[2].q, localCenterA[2]);
-			    xfA[3].p = cA[3] - b2Mul(xfA[3].q, localCenterA[3]);
-
-			    xfB[0].p = cB[0] - b2Mul(xfB[0].q, localCenterB[0]);
-			    xfB[1].p = cB[1] - b2Mul(xfB[1].q, localCenterB[1]);
-			    xfB[2].p = cB[2] - b2Mul(xfB[2].q, localCenterB[2]);
-			    xfB[3].p = cB[3] - b2Mul(xfB[3].q, localCenterB[3]);
-
                 b2Transform4 xfA4, xfB4;
+                xfA4.SetAngle(aA4);
+                xfB4.SetAngle(aB4);
+                xfA4.SetPos(_mm_sub_ps(cAx4, b2Mulx4(xfA4.qs4, xfA4.qc4, localCenterAx4, localCenterAy4)),
+                            _mm_sub_ps(cAy4, b2Muly4(xfA4.qs4, xfA4.qc4, localCenterAx4, localCenterAy4)));
+                xfB4.SetPos(_mm_sub_ps(cBx4, b2Mulx4(xfB4.qs4, xfB4.qc4, localCenterBx4, localCenterBy4)),
+                            _mm_sub_ps(cBy4, b2Muly4(xfB4.qs4, xfB4.qc4, localCenterBx4, localCenterBy4)));
 
-			    b2PositionSolverManifold psm[4];
-			    psm[0].Initialize(pc+0, xfA[0], xfB[0], 0);
-			    psm[1].Initialize(pc+1, xfA[1], xfB[1], 0);
-			    psm[2].Initialize(pc+2, xfA[2], xfB[2], 0);
-			    psm[3].Initialize(pc+3, xfA[3], xfB[3], 0);
+			    b2PositionSolverManifold4 psm4;
+			    psm4.Initialize(pc, xfA4, xfB4, 0);
 
-                __m128 normalx4   = _mm_set_ps(psm[3].normal.x, psm[2].normal.x, psm[1].normal.x, psm[0].normal.x);
-                __m128 normaly4   = _mm_set_ps(psm[3].normal.y, psm[2].normal.y, psm[1].normal.y, psm[0].normal.y);
+                __m128 normalx4   = psm4.normalx4;
+                __m128 normaly4   = psm4.normaly4;
 
-                __m128 pointx4 = _mm_set_ps(psm[3].point.x, psm[2].point.x, psm[1].point.x, psm[0].point.x);
-                __m128 pointy4 = _mm_set_ps(psm[3].point.y, psm[2].point.y, psm[1].point.y, psm[0].point.y);
+                __m128 pointx4 = psm4.pointx4;
+                __m128 pointy4 = psm4.pointy4;
 
-                __m128 separation4 = _mm_set_ps(psm[3].separation, psm[2].separation, psm[1].separation, psm[0].separation);
+                __m128 separation4 = psm4.separation4;
 
                 __m128 rAx4 = _mm_sub_ps(pointx4, cAx4);
                 __m128 rAy4 = _mm_sub_ps(pointy4, cAy4);
@@ -1298,7 +1340,7 @@ void b2ContactSolver::DumpPositionConstraints() {
     }
     for (int32 i4 = 0; i4 < 4; ++i4) {
       pc = m_positionConstraints + (i+i4);
-      b2Log("%4d. (indexA: %4d, indexB: %4d, pointCount: %4d)", i, pc->indexA, pc->indexB, pc->pointCount);
+      b2Log("%4d. (indexA: %4d, indexB: %4d, pointCount: %4d, type: %4d)", i, pc->indexA, pc->indexB, pc->pointCount, pc->type);
       if (overlaps) {
         b2Log(" OVERLAP");
       }
@@ -1307,8 +1349,10 @@ void b2ContactSolver::DumpPositionConstraints() {
   }
   for (i = m_count & ~3; i < m_count; ++i) {
     b2ContactPositionConstraint* pc = m_positionConstraints + i;
-    b2Log("%4d. (indexA: %4d, indexB: %4d, pointCount: %4d)\n", i, pc->indexA, pc->indexB, pc->pointCount);
+    b2Log("%4d. (indexA: %4d, indexB: %4d, pointCount: %4d, type: %4d)\n", i, pc->indexA, pc->indexB, pc->pointCount, pc->type);
   }
-  b2Log("indexOverlapCount:   %6d\n", indexOverlapCount);
-  b2Log("indexNoOverlapCount:  %6d\n", indexNoOverlapCount);
+  if (m_count > 0) {
+    b2Log("indexOverlapCount:    %6d\n", indexOverlapCount);
+    b2Log("indexNoOverlapCount:  %6d\n", indexNoOverlapCount);
+  }
 }

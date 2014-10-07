@@ -401,10 +401,15 @@ struct b2Transform4
 	//}
 
 	/// Set this based on the position and angle.
-	void Set(const __m128& posx4, const __m128& posy4, __m128& angle4)
+	void SetPos(const __m128& posx4, const __m128& posy4)
 	{
 		px4 = posx4;
         py4 = posy4;
+    }
+
+    void SetAngle(const __m128& angle4)
+    {
+        // could be optimized with a _mm_sin_ps() operation
 		qs4.m128_f32[0] = sinf(angle4.m128_f32[0]);
 		qs4.m128_f32[1] = sinf(angle4.m128_f32[1]);
 		qs4.m128_f32[2] = sinf(angle4.m128_f32[2]);
@@ -454,6 +459,11 @@ extern const b2Vec2 b2Vec2_zero;
 inline float32 b2Dot(const b2Vec2& a, const b2Vec2& b)
 {
 	return a.x * b.x + a.y * b.y;
+}
+
+inline __m128 b2Dot4(const __m128& ax4, const __m128& ay4, const __m128& bx4, const __m128& by4)
+{
+    return _mm_add_ps(_mm_mul_ps(ax4, bx4), _mm_mul_ps(ay4, by4));
 }
 
 /// Perform the cross product on two vectors. In 2D this produces a scalar.
@@ -645,6 +655,16 @@ inline b2Vec2 b2Mul(const b2Transform& T, const b2Vec2& v)
 	return b2Vec2(x, y);
 }
 
+inline __m128 b2Mulx4(const b2Transform4& T, const __m128& vx4, const __m128& vy4)
+{
+    return _mm_add_ps(_mm_sub_ps(_mm_mul_ps(T.qc4, vx4), _mm_mul_ps(T.qs4, vy4)), T.px4);
+}
+
+inline __m128 b2Muly4(const b2Transform4& T, const __m128& vx4, const __m128& vy4)
+{
+	return _mm_add_ps(_mm_add_ps(_mm_mul_ps(T.qs4, vx4), _mm_mul_ps(T.qc4, vy4)), T.py4);
+}
+
 inline b2Vec2 b2MulT(const b2Transform& T, const b2Vec2& v)
 {
 	float32 px = v.x - T.p.x;
@@ -785,4 +805,21 @@ inline void b2Sweep::Normalize()
 	a -= d;
 }
 
+inline __m128 b2Length4(const __m128& x4, const __m128& y4)
+{
+    return _mm_sqrt_ps(_mm_add_ps(_mm_mul_ps(x4, x4), _mm_mul_ps(y4, y4)));
+}
+
+inline void b2Normalize4(__m128 &x4, __m128 &y4)
+{
+    __m128 length4    = b2Length4(x4, y4);
+    __m128 epsilon4   = _mm_set_ps1(b2_epsilon);
+    __m128 one4       = _mm_set_ps1(1.0f);
+    __m128 mask       = _mm_cmplt_ps(length4, epsilon4);
+    __m128 invLength4 = _mm_div_ps(one4, length4);
+    __m128 newx4      = _mm_mul_ps(x4, invLength4);
+    __m128 newy4      = _mm_mul_ps(y4, invLength4);
+    x4 = _mm_or_ps(_mm_and_ps(mask, x4), _mm_andnot_ps(mask, newx4));
+    y4 = _mm_or_ps(_mm_and_ps(mask, y4), _mm_andnot_ps(mask, newy4));
+}
 #endif
