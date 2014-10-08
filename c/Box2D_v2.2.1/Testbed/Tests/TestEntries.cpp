@@ -30,6 +30,7 @@ using namespace std;
 
 #include "AddPair.h"
 #include "ApplyForce.h"
+#include "BallPit.h"
 #include "BodyTypes.h"
 #include "Breakable.h"
 #include "Bridge.h"
@@ -76,6 +77,7 @@ using namespace std;
 
 TestEntry g_testEntries[] =
 {
+    {"Ball Pit", BallPit::Create},
 	{"Tumbler", Tumbler::Create},
 	{"Tiles", Tiles::Create},
 	{"Dump Shell", DumpShell::Create},
