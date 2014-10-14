@@ -21,6 +21,8 @@
 
 #include <cassert>
 #include <cmath>
+
+#include <stdint.h>
 #include <xmmintrin.h>
 
 #define B2_NOT_USED(x) ((void)(x))
@@ -206,8 +208,8 @@ private:
   static const int32 m_maxCycles = 100;
   struct cycleData {
     char             *cycleName;
-    unsigned __int64  start;
-    unsigned __int64  total;
+    uint64_t  start;
+    uint64_t  total;
   };
   static cycleData m_cycles[m_maxCycles];
 };

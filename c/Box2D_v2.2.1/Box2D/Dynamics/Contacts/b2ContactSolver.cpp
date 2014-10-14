@@ -699,20 +699,20 @@ struct b2PositionSolverManifold4
             if ((pc+i)->type != b2Manifold::e_circles) {
               b2PositionSolverManifold psm;
               b2Transform xfA, xfB;
-              xfA.p.x = xfA4.px4.m128_f32[i];
-              xfA.p.y = xfA4.py4.m128_f32[i];
-              xfA.q.s = xfA4.qs4.m128_f32[i];
-              xfA.q.c = xfA4.qc4.m128_f32[i];
-              xfB.p.x = xfB4.px4.m128_f32[i];
-              xfB.p.y = xfB4.py4.m128_f32[i];
-              xfB.q.s = xfB4.qs4.m128_f32[i];
-              xfB.q.c = xfB4.qc4.m128_f32[i];
+              xfA.p.x = xfA4.px4[i];
+              xfA.p.y = xfA4.py4[i];
+              xfA.q.s = xfA4.qs4[i];
+              xfA.q.c = xfA4.qc4[i];
+              xfB.p.x = xfB4.px4[i];
+              xfB.p.y = xfB4.py4[i];
+              xfB.q.s = xfB4.qs4[i];
+              xfB.q.c = xfB4.qc4[i];
               psm.Initialize(pc+i, xfA, xfB, index);
-              normalx4.m128_f32[i]    = psm.normal.x;
-              normaly4.m128_f32[i]    = psm.normal.y;
-              pointx4.m128_f32[i]     = psm.point.x;
-              pointy4.m128_f32[i]     = psm.point.y;
-              separation4.m128_f32[i] = psm.separation;
+              normalx4[i]    = psm.normal.x;
+              normaly4[i]    = psm.normal.y;
+              pointx4[i]     = psm.point.x;
+              pointy4[i]     = psm.point.y;
+              separation4[i] = psm.separation;
             }
           }
         }
@@ -841,10 +841,10 @@ float32 b2ContactSolver::SimdSolvePositionConstraints()
                 __m128 rBy4 = _mm_sub_ps(pointy4, cBy4);
 
 			    // Track max constraint error.
-			    minSeparation = b2Min(minSeparation, separation4.m128_f32[0]);
-			    minSeparation = b2Min(minSeparation, separation4.m128_f32[1]);
-			    minSeparation = b2Min(minSeparation, separation4.m128_f32[2]);
-			    minSeparation = b2Min(minSeparation, separation4.m128_f32[3]);
+			    minSeparation = b2Min(minSeparation, separation4[0]);
+			    minSeparation = b2Min(minSeparation, separation4[1]);
+			    minSeparation = b2Min(minSeparation, separation4[2]);
+			    minSeparation = b2Min(minSeparation, separation4[3]);
 
 			    // Prevent large corrections and allow slop.
                 __m128 C4 = b2Clamp4(_mm_mul_ps(b2_baumgarte4, _mm_add_ps(separation4, b2_linearSlop4)),
@@ -880,33 +880,33 @@ float32 b2ContactSolver::SimdSolvePositionConstraints()
                 cBy4 = _mm_add_ps(cBy4, _mm_mul_ps(mB4, Py4));
                 aB4  = _mm_add_ps(aB4, _mm_mul_ps(iB4, b2Cross4(rBx4, rBy4, Px4, Py4)));
 
-                m_positions[indexA[0]].c.x = cAx4.m128_f32[0];
-                m_positions[indexA[1]].c.x = cAx4.m128_f32[1];
-                m_positions[indexA[2]].c.x = cAx4.m128_f32[2];
-                m_positions[indexA[3]].c.x = cAx4.m128_f32[3];
-                m_positions[indexA[0]].c.y = cAy4.m128_f32[0];
-                m_positions[indexA[1]].c.y = cAy4.m128_f32[1];
-                m_positions[indexA[2]].c.y = cAy4.m128_f32[2];
-                m_positions[indexA[3]].c.y = cAy4.m128_f32[3];
+                m_positions[indexA[0]].c.x = cAx4[0];
+                m_positions[indexA[1]].c.x = cAx4[1];
+                m_positions[indexA[2]].c.x = cAx4[2];
+                m_positions[indexA[3]].c.x = cAx4[3];
+                m_positions[indexA[0]].c.y = cAy4[0];
+                m_positions[indexA[1]].c.y = cAy4[1];
+                m_positions[indexA[2]].c.y = cAy4[2];
+                m_positions[indexA[3]].c.y = cAy4[3];
 
-                m_positions[indexA[0]].a = aA4.m128_f32[0];
-                m_positions[indexA[1]].a = aA4.m128_f32[1];
-                m_positions[indexA[2]].a = aA4.m128_f32[2];
-                m_positions[indexA[3]].a = aA4.m128_f32[3];
+                m_positions[indexA[0]].a = aA4[0];
+                m_positions[indexA[1]].a = aA4[1];
+                m_positions[indexA[2]].a = aA4[2];
+                m_positions[indexA[3]].a = aA4[3];
 
-                m_positions[indexB[0]].c.x = cBx4.m128_f32[0];
-                m_positions[indexB[1]].c.x = cBx4.m128_f32[1];
-                m_positions[indexB[2]].c.x = cBx4.m128_f32[2];
-                m_positions[indexB[3]].c.x = cBx4.m128_f32[3];
-                m_positions[indexB[0]].c.y = cBy4.m128_f32[0];
-                m_positions[indexB[1]].c.y = cBy4.m128_f32[1];
-                m_positions[indexB[2]].c.y = cBy4.m128_f32[2];
-                m_positions[indexB[3]].c.y = cBy4.m128_f32[3];
+                m_positions[indexB[0]].c.x = cBx4[0];
+                m_positions[indexB[1]].c.x = cBx4[1];
+                m_positions[indexB[2]].c.x = cBx4[2];
+                m_positions[indexB[3]].c.x = cBx4[3];
+                m_positions[indexB[0]].c.y = cBy4[0];
+                m_positions[indexB[1]].c.y = cBy4[1];
+                m_positions[indexB[2]].c.y = cBy4[2];
+                m_positions[indexB[3]].c.y = cBy4[3];
 
-                m_positions[indexB[0]].a = aB4.m128_f32[0];
-                m_positions[indexB[1]].a = aB4.m128_f32[1];
-                m_positions[indexB[2]].a = aB4.m128_f32[2];
-                m_positions[indexB[3]].a = aB4.m128_f32[3];
+                m_positions[indexB[0]].a = aB4[0];
+                m_positions[indexB[1]].a = aB4[1];
+                m_positions[indexB[2]].a = aB4[2];
+                m_positions[indexB[3]].a = aB4[3];
           }
           else {
             for (int32 i4 = 0; i4 < 4; ++i4) {

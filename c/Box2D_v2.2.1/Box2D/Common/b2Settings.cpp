@@ -21,7 +21,6 @@
 #include <cstdio>
 #include <cstdarg>
 #include <string.h>
-#include <intrin.h>
 
 b2Version b2_version = {2, 2, 1};
 
@@ -109,6 +108,13 @@ void b2Counters::dump() {
     b2Log("minSeparationOk:          %d\n", minSeparationOk);
 }
 
+static inline uint64_t __rdtsc()
+{
+  unsigned int hi, lo;
+  __asm__ volatile("rdtsc" : "=a" (lo), "=d" (hi));
+  return ((uint64_t)hi << 32) | lo;
+}
+
 b2Cycles::b2Cycles(int32 cycleIndex, char *cycleName) {
   m_currentIndex = cycleIndex;
   m_cycles[cycleIndex].cycleName = cycleName;
@@ -116,7 +122,7 @@ b2Cycles::b2Cycles(int32 cycleIndex, char *cycleName) {
 }
 
 b2Cycles::~b2Cycles() {
-  unsigned __int64 stop = __rdtsc();
+  uint64_t stop = __rdtsc();
   m_cycles[m_currentIndex].total += (stop - m_cycles[m_currentIndex].start);
 }
 

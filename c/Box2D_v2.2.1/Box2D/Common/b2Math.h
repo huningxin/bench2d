@@ -410,14 +410,14 @@ struct b2Transform4
     void SetAngle(const __m128& angle4)
     {
         // could be optimized with a _mm_sin_ps() operation
-		qs4.m128_f32[0] = sinf(angle4.m128_f32[0]);
-		qs4.m128_f32[1] = sinf(angle4.m128_f32[1]);
-		qs4.m128_f32[2] = sinf(angle4.m128_f32[2]);
-		qs4.m128_f32[3] = sinf(angle4.m128_f32[3]);
-		qc4.m128_f32[0] = cosf(angle4.m128_f32[0]);
-		qc4.m128_f32[1] = cosf(angle4.m128_f32[1]);
-		qc4.m128_f32[2] = cosf(angle4.m128_f32[2]);
-		qc4.m128_f32[3] = cosf(angle4.m128_f32[3]);
+		qs4[0] = sinf(angle4[0]);
+		qs4[1] = sinf(angle4[1]);
+		qs4[2] = sinf(angle4[2]);
+		qs4[3] = sinf(angle4[3]);
+		qc4[0] = cosf(angle4[0]);
+		qc4[1] = cosf(angle4[1]);
+		qc4[2] = cosf(angle4[2]);
+		qc4[3] = cosf(angle4[3]);
 	}
 
 	__m128 px4;
