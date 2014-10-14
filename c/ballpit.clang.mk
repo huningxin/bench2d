@@ -1,6 +1,6 @@
 CC = ${LLVM}/clang++
 CFLAGS = -O3 -msse -IBox2D_v2.2.1 -DNDEBUG=1
-LFLAGS = -lstdc++
+LFLAGS = -lstdc++ -lrt
 
 OBJECTS = \
 ballpit_main.o \

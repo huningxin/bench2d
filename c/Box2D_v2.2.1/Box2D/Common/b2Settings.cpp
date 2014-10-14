@@ -21,6 +21,7 @@
 #include <cstdio>
 #include <cstdarg>
 #include <string.h>
+#include <time.h>
 
 b2Version b2_version = {2, 2, 1};
 
@@ -108,21 +109,21 @@ void b2Counters::dump() {
     b2Log("minSeparationOk:          %d\n", minSeparationOk);
 }
 
-static inline uint64_t __rdtsc()
+static inline uint64_t colock_ticks()
 {
-  unsigned int hi, lo;
-  __asm__ volatile("rdtsc" : "=a" (lo), "=d" (hi));
-  return ((uint64_t)hi << 32) | lo;
+  struct timespec res;
+  clock_gettime(CLOCK_MONOTONIC, &res);
+  return 1000000000ULL*res.tv_sec + res.tv_nsec;
 }
 
 b2Cycles::b2Cycles(int32 cycleIndex, char *cycleName) {
   m_currentIndex = cycleIndex;
   m_cycles[cycleIndex].cycleName = cycleName;
-  m_cycles[cycleIndex].start     = __rdtsc();
+  m_cycles[cycleIndex].start     = colock_ticks();
 }
 
 b2Cycles::~b2Cycles() {
-  uint64_t stop = __rdtsc();
+  uint64_t stop = colock_ticks();
   m_cycles[m_currentIndex].total += (stop - m_cycles[m_currentIndex].start);
 }
 
