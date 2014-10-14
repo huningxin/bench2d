@@ -695,26 +695,64 @@ struct b2PositionSolverManifold4
         // if one or more of the 4 constraints involves non circles they need to be computed individually
         {
           b2Cycles cycles(3, "Fixing up position solver manifolds");
-          for (int32 i = 0; i < 4; ++i) {
-            if ((pc+i)->type != b2Manifold::e_circles) {
-              b2PositionSolverManifold psm;
-              b2Transform xfA, xfB;
-              xfA.p.x = xfA4.px4[i];
-              xfA.p.y = xfA4.py4[i];
-              xfA.q.s = xfA4.qs4[i];
-              xfA.q.c = xfA4.qc4[i];
-              xfB.p.x = xfB4.px4[i];
-              xfB.p.y = xfB4.py4[i];
-              xfB.q.s = xfB4.qs4[i];
-              xfB.q.c = xfB4.qc4[i];
-              psm.Initialize(pc+i, xfA, xfB, index);
-              normalx4[i]    = psm.normal.x;
-              normaly4[i]    = psm.normal.y;
-              pointx4[i]     = psm.point.x;
-              pointy4[i]     = psm.point.y;
-              separation4[i] = psm.separation;
-            }
-          }
+          b2PositionSolverManifold psm;
+          b2Transform xfA, xfB;
+          xfA.p.x = xfA4.px4[0];
+          xfA.p.y = xfA4.py4[0];
+          xfA.q.s = xfA4.qs4[0];
+          xfA.q.c = xfA4.qc4[0];
+          xfB.p.x = xfB4.px4[0];
+          xfB.p.y = xfB4.py4[0];
+          xfB.q.s = xfB4.qs4[0];
+          xfB.q.c = xfB4.qc4[0];
+          psm.Initialize(pc+0, xfA, xfB, index);
+          normalx4[0]    = psm.normal.x;
+          normaly4[0]    = psm.normal.y;
+          pointx4[0]     = psm.point.x;
+          pointy4[0]     = psm.point.y;
+          separation4[0] = psm.separation;
+          xfA.p.x = xfA4.px4[1];
+          xfA.p.y = xfA4.py4[1];
+          xfA.q.s = xfA4.qs4[1];
+          xfA.q.c = xfA4.qc4[1];
+          xfB.p.x = xfB4.px4[1];
+          xfB.p.y = xfB4.py4[1];
+          xfB.q.s = xfB4.qs4[1];
+          xfB.q.c = xfB4.qc4[1];
+          psm.Initialize(pc+1, xfA, xfB, index);
+          normalx4[1]    = psm.normal.x;
+          normaly4[1]    = psm.normal.y;
+          pointx4[1]     = psm.point.x;
+          pointy4[1]     = psm.point.y;
+          separation4[1] = psm.separation;
+          xfA.p.x = xfA4.px4[2];
+          xfA.p.y = xfA4.py4[2];
+          xfA.q.s = xfA4.qs4[2];
+          xfA.q.c = xfA4.qc4[2];
+          xfB.p.x = xfB4.px4[2];
+          xfB.p.y = xfB4.py4[2];
+          xfB.q.s = xfB4.qs4[2];
+          xfB.q.c = xfB4.qc4[2];
+          psm.Initialize(pc+2, xfA, xfB, index);
+          normalx4[2]    = psm.normal.x;
+          normaly4[2]    = psm.normal.y;
+          pointx4[2]     = psm.point.x;
+          pointy4[2]     = psm.point.y;
+          separation4[2] = psm.separation;
+          xfA.p.x = xfA4.px4[3];
+          xfA.p.y = xfA4.py4[3];
+          xfA.q.s = xfA4.qs4[3];
+          xfA.q.c = xfA4.qc4[3];
+          xfB.p.x = xfB4.px4[3];
+          xfB.p.y = xfB4.py4[3];
+          xfB.q.s = xfB4.qs4[3];
+          xfB.q.c = xfB4.qc4[3];
+          psm.Initialize(pc+3, xfA, xfB, index);
+          normalx4[3]    = psm.normal.x;
+          normaly4[3]    = psm.normal.y;
+          pointx4[3]     = psm.point.x;
+          pointy4[3]     = psm.point.y;
+          separation4[3] = psm.separation;        
         }
     }
 
@@ -879,7 +917,7 @@ float32 b2ContactSolver::SimdSolvePositionConstraints()
                 cBx4 = _mm_add_ps(cBx4, _mm_mul_ps(mB4, Px4));
                 cBy4 = _mm_add_ps(cBy4, _mm_mul_ps(mB4, Py4));
                 aB4  = _mm_add_ps(aB4, _mm_mul_ps(iB4, b2Cross4(rBx4, rBy4, Px4, Py4)));
-
+				
                 m_positions[indexA[0]].c.x = cAx4[0];
                 m_positions[indexA[1]].c.x = cAx4[1];
                 m_positions[indexA[2]].c.x = cAx4[2];

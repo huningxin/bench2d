@@ -24,6 +24,7 @@
 
 #include <stdint.h>
 #include <xmmintrin.h>
+#include <emmintrin.h>
 
 #define B2_NOT_USED(x) ((void)(x))
 #define b2Assert(A) assert(A)

@@ -26,6 +26,7 @@
 #include <cstddef>
 #include <limits>
 #include <xmmintrin.h>
+#include <emmintrin.h>
 
 /// This function is used to ensure that a floating point number is
 /// not a NaN or infinity.
