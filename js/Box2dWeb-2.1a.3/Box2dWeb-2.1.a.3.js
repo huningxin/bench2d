@@ -6527,7 +6527,8 @@ Box2D.postDefs = [];
                vertices[i] = b2Math.MulX(xf, localVertices[i]);
             }
             this.m_debugDraw.DrawSolidPolygon(vertices, vertexCount, color);
-         }
+//            this.m_debugDraw.DrawPolygon(vertices, vertexCount, color);
+          }
          break;
       case b2Shape.e_edgeShape:
          {
@@ -10807,7 +10808,7 @@ Box2D.postDefs = [];
       s.lineTo(vertices[0].x * drawScale, vertices[0].y * drawScale);
       s.closePath();
       s.fill();
-      s.stroke();
+//      s.stroke();
    };
    b2DebugDraw.prototype.DrawCircle = function (center, radius, color) {
       if (!radius) return;
@@ -10834,7 +10835,7 @@ Box2D.postDefs = [];
       s.lineTo((center.x + axis.x * radius) * drawScale, (center.y + axis.y * radius) * drawScale);
       s.closePath();
       s.fill();
-      s.stroke();
+//      s.stroke();
    };
    b2DebugDraw.prototype.DrawSegment = function (p1, p2, color) {
       var s = this.m_ctx,
