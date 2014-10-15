@@ -1299,9 +1299,9 @@ void b2ContactSolver::SortPositionConstraints() {
   }
   for (i = 0; i < m_count-3; i += 4) {
     bool found = Find4Uniques(i, sorted); 
-    if (!found) {
-      break;
-    }
+//    if (!found) {
+//      break;
+//    }
   }
 
   b2ContactPositionConstraint *copy = (b2ContactPositionConstraint*)m_allocator->Allocate(m_count * sizeof(b2ContactPositionConstraint));

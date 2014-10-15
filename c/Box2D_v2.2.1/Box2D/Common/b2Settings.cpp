@@ -54,7 +54,6 @@ bool b2Params::frame1  = false;
 bool b2Params::frame10 = false;
 bool b2Params::sortCon = false;
 
-
 void b2Params::init(int argc, char **argv) {
   if (argc <= 1) {
     return;
