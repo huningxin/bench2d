@@ -25,7 +25,7 @@ public:
 
     enum
     {
-        e_count = 60
+        e_count = 40
     };
 
     BallPit()

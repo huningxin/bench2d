@@ -45,6 +45,7 @@ using namespace std;
 #include "CompoundShapes.h"
 #include "Confined.h"
 #include "DistanceTest.h"
+#include "demo01.h"
 #include "Dominos.h"
 #include "DumpShell.h"
 #include "DynamicTreeTest.h"
@@ -78,6 +79,7 @@ using namespace std;
 TestEntry g_testEntries[] =
 {
     {"Ball Pit", BallPit::Create},
+    {"Demo 01", Demo01::Create},
 	{"Tumbler", Tumbler::Create},
 	{"Tiles", Tiles::Create},
 	{"Dump Shell", DumpShell::Create},
