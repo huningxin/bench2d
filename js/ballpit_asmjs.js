@@ -17,6 +17,10 @@ var world;
 var PYRAMID_SIZE = 4;
 
 function init() {
+  var params = new Box2D.b2Params;
+  params.setSimd(true);
+  params.setSortCon(true);
+
   var gravity = new Vec2(0.0, -10.0);
   world = new World(gravity);
 
